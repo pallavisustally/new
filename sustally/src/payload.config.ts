@@ -1,0 +1,60 @@
+import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import path from 'path'
+import { buildConfig } from 'payload'
+import { fileURLToPath } from 'url'
+import sharp from 'sharp'
+import Applications from "./collections/Applications";
+import { Users } from './collections/Users'
+import { Media } from './collections/Media'
+
+const filename = fileURLToPath(import.meta.url)
+const dirname = path.dirname(filename)
+
+export default buildConfig({
+  admin: {
+    user: Users.slug,
+    importMap: {
+      baseDir: path.resolve(dirname),
+    },
+  },
+  collections: [Users, Media, Applications],
+  editor: lexicalEditor(),
+  secret: process.env.PAYLOAD_SECRET || '',
+  typescript: {
+    outputFile: path.resolve(dirname, 'payload-types.ts'),
+  },
+  db: mongooseAdapter({
+    url: process.env.DATABASE_URL || '',
+  }),
+  email: (() => {
+    const smtpUser = process.env.SMTP_USER?.trim()
+    const smtpPass = process.env.SMTP_PASS?.trim()
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587')
+    
+    // Only configure email if credentials are provided
+    if (!smtpUser || !smtpPass) {
+      console.warn('⚠️  SMTP credentials not configured. Email functionality will be disabled.')
+      return undefined
+    }
+
+    return nodemailerAdapter({
+      defaultFromAddress: process.env.SMTP_FROM_ADDRESS || smtpUser,
+      defaultFromName: process.env.SMTP_FROM_NAME || 'Sustally',
+      transportOptions: {
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465, // true for 465, false for other ports
+        requireTLS: smtpPort === 587, // true for 587 (STARTTLS)
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      },
+    })
+  })(),
+  sharp,
+  plugins: [],
+})

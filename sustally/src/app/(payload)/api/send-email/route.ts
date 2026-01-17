@@ -1,0 +1,277 @@
+import configPromise from '@payload-config'
+import { getPayload } from 'payload'
+import { APIError } from 'payload'
+
+export const OPTIONS = async (request: Request) => {
+  // Handle CORS preflight
+  const origin = request.headers.get('origin')
+  // Get allowed origins from environment variable or use defaults
+  const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001'
+  const allowedOrigins = corsOriginsEnv.split(',').map(origin => origin.trim())
+
+  const headers = new Headers()
+  if (origin && allowedOrigins.includes(origin)) {
+    headers.set('Access-Control-Allow-Origin', origin)
+    headers.set('Access-Control-Allow-Credentials', 'true')
+  }
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  headers.set('Access-Control-Max-Age', '86400')
+
+  return new Response(null, { status: 200, headers })
+}
+
+export const POST = async (request: Request) => {
+  try {
+    const payload = await getPayload({
+      config: configPromise,
+    })
+
+    const data = await request.json()
+
+    // Validate required fields
+    if (!data.email) {
+      throw new APIError('Email address is required', 400)
+    }
+
+    // Extract review details from request
+    const renewableEnergyStr = data.renewableEnergy || '0';
+    const totalEnergyStr = data.totalEnergy || '0';
+    
+    // Extract numeric values (remove units like "kWh" if present)
+    const renewableEnergy = parseFloat(String(renewableEnergyStr).replace(/[^\d.]/g, '')) || 0;
+    const totalEnergy = parseFloat(String(totalEnergyStr).replace(/[^\d.]/g, '')) || 0;
+    
+    // Calculate renewable energy percentage: (Renewable Energy / Total Energy) × 100
+    const renewablePercentage = totalEnergy > 0 
+      ? ((renewableEnergy / totalEnergy) * 100).toFixed(2)
+      : '0.00';
+    
+    const reviewDetails = {
+      name: data.name || '-',
+      mobile: data.mobile || '-',
+      email: data.email || '-',
+      company: data.company || '-',
+      sector: data.sector || '-',
+      natureOfBusiness: data.natureOfBusiness || '-',
+      country: data.country || '-',
+      renewableEnergy: renewableEnergyStr || '-',
+      totalEnergy: totalEnergyStr || '-',
+      renewablePercentage: `${renewablePercentage}%`,
+    }
+
+    // Create email HTML content with all review details
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background-color: #FF6B35;
+              color: white;
+              padding: 20px;
+              text-align: center;
+              border-radius: 8px 8px 0 0;
+            }
+            .content {
+              background-color: #f9f9f9;
+              padding: 30px;
+              border: 1px solid #ddd;
+            }
+            .detail-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 12px 0;
+              border-bottom: 1px solid #e0e0e0;
+            }
+            .detail-label {
+              font-weight: 600;
+              color: #666;
+            }
+            .detail-value {
+              color: #333;
+              text-align: right;
+            }
+            .footer {
+              background-color: #1a1a1a;
+              color: #fff;
+              padding: 15px;
+              text-align: center;
+              border-radius: 0 0 8px 8px;
+              font-size: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Review Details</h1>
+            </div>
+            <div class="content">
+              <h2>Application Information</h2>
+              <div class="detail-row">
+                <span class="detail-label">Name:</span>
+                <span class="detail-value">${reviewDetails.name}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Mobile:</span>
+                <span class="detail-value">${reviewDetails.mobile}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">${reviewDetails.email}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Company:</span>
+                <span class="detail-value">${reviewDetails.company}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Sector:</span>
+                <span class="detail-value">${reviewDetails.sector}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Nature of Business:</span>
+                <span class="detail-value">${reviewDetails.natureOfBusiness}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Country:</span>
+                <span class="detail-value">${reviewDetails.country}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Renewable Energy:</span>
+                <span class="detail-value">${reviewDetails.renewableEnergy}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Total Energy:</span>
+                <span class="detail-value">${reviewDetails.totalEnergy}</span>
+              </div>
+              <div class="detail-row" style="border-bottom: none;">
+                <span class="detail-label">Renewable Energy Percentage:</span>
+                <span class="detail-value">${reviewDetails.renewablePercentage}</span>
+              </div>
+            </div>
+            <div class="footer">
+              <p>This email was sent from Sustally Application System</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+
+    // Create plain text version
+    const emailText = `
+Review Details
+
+Application Information:
+
+Name: ${reviewDetails.name}
+Mobile: ${reviewDetails.mobile}
+Email: ${reviewDetails.email}
+Company: ${reviewDetails.company}
+Sector: ${reviewDetails.sector}
+Nature of Business: ${reviewDetails.natureOfBusiness}
+Country: ${reviewDetails.country}
+Renewable Energy: ${reviewDetails.renewableEnergy}
+Total Energy: ${reviewDetails.totalEnergy}
+Renewable Energy Percentage: ${reviewDetails.renewablePercentage}
+
+---
+This email was sent from Sustally Application System
+    `.trim()
+
+    // Check if email adapter is configured
+    if (!payload.email) {
+      throw new APIError('Email service is not configured. Please set SMTP_USER and SMTP_PASS environment variables.', 503)
+    }
+
+    // Send email using Payload's email adapter
+    await payload.sendEmail({
+      to: reviewDetails.email,
+      subject: 'Your Application Review Details',
+      html: emailHtml,
+      text: emailText,
+    })
+
+    // Get origin for CORS
+    const origin = request.headers.get('origin')
+    // Get allowed origins from environment variable or use defaults
+    const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001'
+    const allowedOrigins = corsOriginsEnv.split(',').map(origin => origin.trim())
+
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+    })
+
+    // Add CORS headers
+    if (origin && allowedOrigins.includes(origin)) {
+      headers.set('Access-Control-Allow-Origin', origin)
+      headers.set('Access-Control-Allow-Credentials', 'true')
+    }
+    headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+
+    return Response.json({
+      success: true,
+      message: 'Email sent successfully',
+    }, { headers })
+  } catch (error) {
+    console.error('Error sending email:', error)
+    
+    // Get origin for CORS
+    const origin = request.headers.get('origin')
+    // Get allowed origins from environment variable or use defaults
+    const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001'
+    const allowedOrigins = corsOriginsEnv.split(',').map(origin => origin.trim())
+
+    const errorHeaders = new Headers({
+      'Content-Type': 'application/json',
+    })
+
+    // Add CORS headers to error response
+    if (origin && allowedOrigins.includes(origin)) {
+      errorHeaders.set('Access-Control-Allow-Origin', origin)
+      errorHeaders.set('Access-Control-Allow-Credentials', 'true')
+    }
+    errorHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+    errorHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    
+    if (error instanceof APIError) {
+      return Response.json(
+        { success: false, error: error.message },
+        { status: error.status, headers: errorHeaders }
+      )
+    }
+
+    // Extract error message from the error object
+    let errorMessage = 'Failed to send email'
+    if (error instanceof Error) {
+      errorMessage = error.message || errorMessage
+      
+      // Provide user-friendly error messages for common SMTP errors
+      if (error.message.includes('EAUTH') || error.message.includes('BadCredentials')) {
+        errorMessage = 'SMTP authentication failed. Please check your SMTP_USER and SMTP_PASS credentials. For Gmail, use an App Password instead of your regular password.'
+      } else if (error.message.includes('Missing credentials')) {
+        errorMessage = 'SMTP credentials are missing. Please configure SMTP_USER and SMTP_PASS environment variables.'
+      } else if (error.message.includes('ECONNECTION') || error.message.includes('ETIMEDOUT')) {
+        errorMessage = 'Could not connect to SMTP server. Please check your SMTP_HOST and SMTP_PORT settings.'
+      }
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      errorMessage = String(error.message) || errorMessage
+    }
+
+    return Response.json(
+      { success: false, error: errorMessage },
+      { status: 500, headers: errorHeaders }
+    )
+  }
+}
