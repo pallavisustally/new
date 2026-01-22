@@ -6,6 +6,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 import Applications from "./collections/Applications";
+import Scope2Applications from "./collections/Scope2Applications";
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 
@@ -19,7 +20,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Applications],
+  collections: [Users, Media, Applications, Scope2Applications],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

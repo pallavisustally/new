@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type YesNo = "Yes" | "No" | "";
 
@@ -45,6 +46,7 @@ type FormDataType = {
 };
 
 export default function TemplatePage() {
+  const router = useRouter();
   const [page, setPage] = useState<1 | 2>(1);
 
   const [formData, setFormData] = useState<FormDataType>({
@@ -89,6 +91,93 @@ export default function TemplatePage() {
 
   const handleRadioChange = (name: keyof FormDataType, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Page 1 validations
+    if (!formData.state.trim()) newErrors.state = "State is required";
+    if (!formData.siteCount.trim()) newErrors.siteCount = "Site Count is required";
+    if (!formData.facilityName.trim()) newErrors.facilityName = "Facility Name is required";
+    if (!formData.renewableProcurement) newErrors.renewableProcurement = "Please select an option";
+    if (!formData.onsiteExportedKwh.trim()) newErrors.onsiteExportedKwh = "On-site generation exported is required";
+    if (!formData.netMeteringApplicable) newErrors.netMeteringApplicable = "Please select an option";
+    if (!formData.reportingYear) newErrors.reportingYear = "Reporting Year is required";
+    if (!formData.reportingPeriod) newErrors.reportingPeriod = "Reporting Period is required";
+    if (!formData.conditionalApproach) newErrors.conditionalApproach = "Conditional Approach is required";
+    if (!formData.scopeBoundaryNotes.trim()) newErrors.scopeBoundaryNotes = "Scope boundary notes is required";
+
+    // Page 2 validations
+    if (!formData.energyActivityInput) newErrors.energyActivityInput = "Energy activity input is required";
+    if (!formData.energyCategory.trim()) newErrors.energyCategory = "Energy category is required";
+    if (!formData.trackingType) newErrors.trackingType = "Tracking type is required";
+    if (!formData.energySourceDescription.trim()) newErrors.energySourceDescription = "Energy source description is required";
+    if (!formData.hasRenewableElectricity) newErrors.hasRenewableElectricity = "Please select an option";
+    if (!formData.renewableEnergySourceDescription.trim()) newErrors.renewableEnergySourceDescription = "Energy source description is required";
+
+    // Conditional validations for renewable electricity
+    if (formData.hasRenewableElectricity === "Yes") {
+      if (!formData.renewableElectricity.trim()) newErrors.renewableElectricity = "Renewable electricity is required";
+      if (!formData.renewableEnergyConsumption.trim()) newErrors.renewableEnergyConsumption = "Energy consumption is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    try {
+      // Prepare data for API (convert File objects to filenames)
+      const submitData: any = {};
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value instanceof File) {
+          submitData[key] = value.name;
+        } else if (value !== null && value !== undefined) {
+          submitData[key] = String(value);
+        }
+      });
+
+      // Save to Payload CMS
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const saveResponse = await fetch(`${apiUrl}/api/save-scope2`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submitData),
+      });
+
+      const saveResult = await saveResponse.json();
+
+      if (!saveResponse.ok || !saveResult.success) {
+        throw new Error(saveResult.error || "Failed to save application");
+      }
+
+      // Navigate to review page with data
+      const params = new URLSearchParams();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value instanceof File) {
+          params.append(key, value.name);
+        } else if (value !== null && value !== undefined) {
+          params.append(key, String(value));
+        }
+      });
+
+      router.push(`/scope/review?${params.toString()}`);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert(error instanceof Error ? error.message : "Failed to submit form. Please try again.");
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -136,9 +225,10 @@ export default function TemplatePage() {
         >
           {page === 1
             ? "Please fill in all the required information below"
-            : "Choose your preferred date and time"}
+            : "Energy Activity and Renewable Electricity Details"}
         </p>
 
+        <form onSubmit={handleSubmit}>
         {/* ===================== PAGE 1 ===================== */}
         {page === 1 && (
           <>
@@ -1269,24 +1359,27 @@ export default function TemplatePage() {
               </button>
 
               <button
-                type="button"
+                type="submit"
+                disabled={isSubmitting}
                 style={{
                   width: "auto",
                   padding: "10px 18px",
                   borderRadius: "8px",
                   border: "1px solid #000000",
-                  backgroundColor: "#000000",
+                  backgroundColor: isSubmitting ? "#cccccc" : "#000000",
                   color: "#FFFFFF",
                   fontSize: "16px",
                   fontWeight: "600",
-                  cursor: "pointer",
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                  opacity: isSubmitting ? 0.7 : 1,
                 }}
               >
-                Submit
+                {isSubmitting ? "Submitting..." : "Submit"}
               </button>
             </div>
           </>
         )}
+        </form>
       </div>
     </main>
   );
