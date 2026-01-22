@@ -54,6 +54,11 @@ export const POST = async (request: Request) => {
       company: data.company || '-',
       sector: data.sector || '-',
       natureOfBusiness: data.natureOfBusiness || '-',
+
+      assignmentDate: data.assignmentDate || "-",
+      assignmentSlot: data.assignmentSlot || "-",
+      assignmentTime: data.assignmentTime || "-",
+
       country: data.country || '-',
       renewableEnergy: renewableEnergyStr || '-',
       totalEnergy: totalEnergyStr || '-',
@@ -69,7 +74,7 @@ export const POST = async (request: Request) => {
             body {
               font-family: Arial, sans-serif;
               line-height: 1.6;
-              color: #333;
+              color: #f5eaea;
             }
             .container {
               max-width: 600px;
@@ -77,7 +82,7 @@ export const POST = async (request: Request) => {
               padding: 20px;
             }
             .header {
-              background-color: #FF6B35;
+              background-color: #686565;
               color: white;
               padding: 20px;
               text-align: center;
@@ -96,15 +101,15 @@ export const POST = async (request: Request) => {
             }
             .detail-label {
               font-weight: 600;
-              color: #666;
+              color: #f3efef;
             }
             .detail-value {
               color: #333;
               text-align: right;
             }
             .footer {
-              background-color: #1a1a1a;
-              color: #fff;
+              background-color: #f4f0f0;
+              color: #0c0c0c;
               padding: 15px;
               text-align: center;
               border-radius: 0 0 8px 8px;
@@ -147,6 +152,21 @@ export const POST = async (request: Request) => {
                 <span class="detail-label">Country:</span>
                 <span class="detail-value">${reviewDetails.country}</span>
               </div>
+              <h2>Scope 2 Assignment</h2>
+
+              <div class="detail-row">
+              <span class="detail-label">Assignment Date:</span>
+              <span class="detail-value">${reviewDetails.assignmentDate}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Assignment Slot:</span>
+                <span class="detail-value">${reviewDetails.assignmentSlot}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Assignment Time:</span>
+                <span class="detail-value">${reviewDetails.assignmentTime}</span>
+              </div>
+
               <div class="detail-row">
                 <span class="detail-label">Renewable Energy:</span>
                 <span class="detail-value">${reviewDetails.renewableEnergy}</span>
@@ -181,9 +201,18 @@ Company: ${reviewDetails.company}
 Sector: ${reviewDetails.sector}
 Nature of Business: ${reviewDetails.natureOfBusiness}
 Country: ${reviewDetails.country}
+
+
+
 Renewable Energy: ${reviewDetails.renewableEnergy}
 Total Energy: ${reviewDetails.totalEnergy}
 Renewable Energy Percentage: ${reviewDetails.renewablePercentage}
+
+Scope 2 Assignment:
+
+Assignment Date: ${reviewDetails.assignmentDate}
+Assignment Slot: ${reviewDetails.assignmentSlot}
+Assignment Time: ${reviewDetails.assignmentTime}
 
 ---
 This email was sent from Sustally Application System

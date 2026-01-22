@@ -41,6 +41,9 @@ export default function ReviewPage() {
         renewableEnergy: renewableEnergyStr || "-",
         totalEnergy: totalEnergyStr || "-",
         renewablePercentage: renewablePercentage,
+        assignmentDate: searchParams.get("assignmentDate") || "-",
+        assignmentSlot: searchParams.get("assignmentSlot") || "-",
+        assignmentTime: searchParams.get("assignmentTime") || "-",
       };
     },
     [searchParams]
@@ -56,6 +59,9 @@ export default function ReviewPage() {
     { label: "Country", value: data.country },
     { label: "Renewable Energy", value: data.renewableEnergy },
     { label: "Total Energy", value: data.totalEnergy },
+    { label: "Assignment Date", value: data.assignmentDate },
+    { label: "Assignment Slot", value: data.assignmentSlot },
+    { label: "Assignment Time", value: data.assignmentTime },
     { label: "Renewable Energy Percentage", value: `${data.renewablePercentage}%` },
   ];
 
@@ -75,11 +81,11 @@ export default function ReviewPage() {
       return (
         <div
           style={{
-            backgroundColor: "#1a1a1a",
+            backgroundColor: "#f4f2f2",
             border: "1px solid #2f2f2f",
             borderRadius: "8px",
             padding: "12px",
-            color: "#FFFFFF",
+            color: "#0e0e0e",
           }}
         >
           <p style={{ margin: 0, fontWeight: 600 }}>{payload[0].name}</p>
@@ -221,7 +227,7 @@ export default function ReviewPage() {
     <main
       style={{
         minHeight: "100vh",
-        backgroundColor: "#000000",
+        backgroundColor: "#f5f4f4",
         padding: "40px 20px",
         display: "flex",
         alignItems: "center",
@@ -232,17 +238,17 @@ export default function ReviewPage() {
         ref={contentRef}
         style={{
           width: "100%",
-          maxWidth: "700px",
-          border: "2px solid #FF6B35",
+          maxWidth: "1200px",
+          border: "2px solid #fbfafa",
           borderRadius: "12px",
           padding: "40px",
-          backgroundColor: "#1a1a1a",
+          backgroundColor: "#fffcfc",
           boxShadow: "0 8px 32px rgba(255, 107, 53, 0.2)",
         }}
       >
         <h2
           style={{
-            color: "#FFFFFF",
+            color: "#000000",
             marginBottom: "24px",
             fontSize: "28px",
             fontWeight: "600",
@@ -254,7 +260,7 @@ export default function ReviewPage() {
 
         <p
           style={{
-            color: "#E5E5E5",
+            color: "#161414",
             marginBottom: "24px",
             textAlign: "center",
             fontSize: "15px",
@@ -274,12 +280,12 @@ export default function ReviewPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                backgroundColor: "#202020",
+                backgroundColor: "#f4f3f3",
               }}
             >
               <span
                 style={{
-                  color: "#B5B5B5",
+                  color: "#0f0f0f",
                   fontSize: "14px",
                   letterSpacing: "0.2px",
                 }}
@@ -288,7 +294,7 @@ export default function ReviewPage() {
               </span>
               <span
                 style={{
-                  color: "#FFFFFF",
+                  color: "#121111",
                   fontWeight: 600,
                   fontSize: "15px",
                   textAlign: "right",
@@ -309,7 +315,7 @@ export default function ReviewPage() {
             padding: "24px",
             border: "1px solid #2f2f2f",
             borderRadius: "10px",
-            backgroundColor: "#202020",
+            backgroundColor: "#595555",
           }}
         >
           <h3
@@ -372,9 +378,9 @@ export default function ReviewPage() {
             style={{
               padding: "12px 20px",
               borderRadius: "8px",
-              border: "1px solid #444444",
+              border: "1px solid #d0cccc",
               backgroundColor: "transparent",
-              color: "#FFFFFF",
+              color: "#0b0a0a",
               fontSize: "15px",
               fontWeight: "500",
               cursor: "pointer",
@@ -416,9 +422,9 @@ export default function ReviewPage() {
               style={{
                 padding: "12px 20px",
                 borderRadius: "8px",
-                border: "none",
-                backgroundColor: isGeneratingPDF ? "#999999" : "#4CAF50",
-                color: "#FFFFFF",
+                border: "#0c0808",
+                backgroundColor: isGeneratingPDF ? "#494747" : "#eef2ee",
+                color: "#0c0808",
                 fontSize: "15px",
                 fontWeight: "600",
                 cursor: isGeneratingPDF ? "not-allowed" : "pointer",
@@ -473,7 +479,7 @@ export default function ReviewPage() {
 
                   // Check if response is ok and result indicates success
                   if (response.ok && result.success) {
-                    setNotification({ message: "Email sent successfully!", type: "success" });
+                    setNotification({ message: "Thank You !  Pease re check your mail for the assessment details", type: "success" });
                     setTimeout(() => {
                       setNotification(null);
                       // Redirect to home page after successful email send
