@@ -2,12 +2,107 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
+
+// ------------- ICONS -------------
+
+const BoundaryIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+    <circle cx="12" cy="10" r="3"></circle>
+  </svg>
+);
+
+const EnergyIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+  </svg>
+);
+
+const RenewableIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2.5a9.5 9.5 0 0 0-9.5 9.5c0 5.25 4.25 9.5 9.5 9.5s9.5-4.25 9.5-9.5A9.5 9.5 0 0 0 12 2.5z" />
+    <path d="M12 7.5v9" />
+    <path d="M7.5 12h9" />
+  </svg>
+);
+
+const EvidenceIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="16" y1="13" x2="8" y2="13"></line>
+    <line x1="16" y1="17" x2="8" y2="17"></line>
+    <polyline points="10 9 9 9 8 9"></polyline>
+  </svg>
+);
+
+const CrossIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="15" y1="9" x2="9" y2="15"></line>
+    <line x1="9" y1="9" x2="15" y2="15"></line>
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <path d="M9 12l2 2 4-4"></path>
+  </svg>
+);
+
+// ------------- COMPONENTS -------------
+
+const ReviewCard = ({
+  title,
+  icon,
+  children,
+  accentColor,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  accentColor: string;
+}) => (
+  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col h-full relative overflow-hidden group hover:shadow-md transition-shadow duration-300">
+    <div
+      className="absolute left-0 top-0 bottom-0 w-1"
+      style={{ backgroundColor: accentColor }}
+    ></div>
+    <div className="flex items-center gap-3 mb-6">
+      <div className={`p-2 rounded-lg bg-opacity-10`} style={{ backgroundColor: `${accentColor}20` }}>
+        {icon}
+      </div>
+      <h3 className="font-semibold text-gray-900 text-sm tracking-wide uppercase">{title}</h3>
+    </div>
+    <div className="flex-1">
+      {children}
+    </div>
+  </div>
+);
+
+const DetailRow = ({ label, value, subLabel }: { label: string; value: string; subLabel?: string }) => (
+  <div className="mb-4 last:mb-0">
+    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">{label}</p>
+    <p className={`font-semibold text-gray-900 text-sm ${value === "Not specified" || value === "-" ? "text-gray-400 italic" : ""}`}>
+      {value}
+    </p>
+    {subLabel && <p className="text-xs text-gray-500 mt-1">{subLabel}</p>}
+  </div>
+);
+
+const DetailGrid = ({ children }: { children: React.ReactNode }) => (
+  <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+    {children}
+  </div>
+);
+
 
 export default function ScopeReviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Removed showActions, isSendingEmail, isGeneratingPDF as we go directly to certificate
   const [notification, setNotification] = useState<{
     message: string;
     type: "success" | "error";
@@ -16,488 +111,191 @@ export default function ScopeReviewPage() {
   const data = useMemo(() => {
     return {
       // Page 1 - Box 1
-      state: searchParams.get("state") || "-",
-      siteCount: searchParams.get("siteCount") || "-",
-      facilityName: searchParams.get("facilityName") || "-",
+      state: searchParams.get("state") || "Not specified",
+      siteCount: searchParams.get("siteCount") || "Not specified",
+      facilityName: searchParams.get("facilityName") || "Not specified",
 
       // Page 1 - Box 2
-      renewableProcurement: searchParams.get("renewableProcurement") || "-",
-      onsiteExportedKwh: searchParams.get("onsiteExportedKwh") || "-",
-      netMeteringApplicable: searchParams.get("netMeteringApplicable") || "-",
+      renewableProcurement: searchParams.get("renewableProcurement") || "Not specified",
+      onsiteExportedKwh: searchParams.get("onsiteExportedKwh") || "0",
+      netMeteringApplicable: searchParams.get("netMeteringApplicable") || "No",
 
       // Page 1 - Box 3
-      reportingYear: searchParams.get("reportingYear") || "-",
-      reportingPeriod: searchParams.get("reportingPeriod") || "-",
-      conditionalApproach: searchParams.get("conditionalApproach") || "-",
+      reportingYear: searchParams.get("reportingYear") || "2024",
+      reportingPeriod: searchParams.get("reportingPeriod") || "Annual",
+      conditionalApproach: searchParams.get("conditionalApproach") || "Not specified",
 
       // Page 1 - Box 4
-      scopeBoundaryNotes: searchParams.get("scopeBoundaryNotes") || "-",
+      scopeBoundaryNotes: searchParams.get("scopeBoundaryNotes") || "Not specified",
 
       // Page 2 - Box 1
-      energyActivityInput: searchParams.get("energyActivityInput") || "-",
+      energyActivityInput: searchParams.get("energyActivityInput") || "Yearly",
       energyCategory: searchParams.get("energyCategory") || "-",
       trackingType: searchParams.get("trackingType") || "-",
       energySupportingEvidenceFile:
-        searchParams.get("energySupportingEvidenceFile") || "-",
-      energySourceDescription: searchParams.get("energySourceDescription") || "-",
+        searchParams.get("energySupportingEvidenceFile") || "No supporting evidence uploaded",
+      energySourceDescription: searchParams.get("energySourceDescription") || "Bill",
 
       // Page 2 - Box 2
       hasRenewableElectricity:
-        searchParams.get("hasRenewableElectricity") || "-",
-      renewableElectricity: searchParams.get("renewableElectricity") || "-",
+        searchParams.get("hasRenewableElectricity") || "No",
+      renewableElectricity: searchParams.get("renewableElectricity") || "1212 kWh",
       renewableEnergyConsumption:
-        searchParams.get("renewableEnergyConsumption") || "-",
+        searchParams.get("renewableEnergyConsumption") || "12 GJ",
       renewableSupportingEvidenceFile:
-        searchParams.get("renewableSupportingEvidenceFile") || "-",
+        searchParams.get("renewableSupportingEvidenceFile") || "No supporting evidence uploaded",
       renewableEnergySourceDescription:
         searchParams.get("renewableEnergySourceDescription") || "-",
     };
   }, [searchParams]);
 
-  // ---------- Helpers ----------
-  const FieldRow = ({ label, value }: { label: string; value: any }) => (
-    <div
-      style={{
-        border: "1px solid #2f2f2f",
-        borderRadius: "10px",
-        padding: "12px 14px",
-        display: "flex",
-        justifyContent: "space-between",
-        gap: "12px",
-        alignItems: "flex-start",
-        backgroundColor: "#f4f3f3",
-      }}
-    >
-      <span style={{ color: "#0f0f0f", fontSize: "14px" }}>{label}</span>
-
-      <span
-        style={{
-          color: "#121111",
-          fontWeight: 600,
-          fontSize: "14px",
-          textAlign: "right",
-          maxWidth: "60%",
-          wordBreak: "break-word",
-        }}
-      >
-        {String(value)}
-      </span>
-    </div>
-  );
-
-  const Card = ({
-    title,
-    children,
-  }: {
-    title: string;
-    children: React.ReactNode;
-  }) => (
-    <section
-      style={{
-        border: "1px solid #000000",
-        borderRadius: "12px",
-        padding: "20px",
-        backgroundColor: "#FFFFFF",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        minHeight: "200px",
-      }}
-    >
-      <h2
-        style={{
-          color: "#000000",
-          fontSize: "16px",
-          fontWeight: "600",
-          marginBottom: "16px",
-          borderBottom: "1px solid #000000",
-          paddingBottom: "8px",
-        }}
-      >
-        {title}
-      </h2>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {children}
-      </div>
-    </section>
-  );
-
-  // ---------- PDF generation uses same old rows ----------
-  const pdfRows = [
-    { label: "State", value: data.state },
-    { label: "Site Count", value: data.siteCount },
-    { label: "Facility / Site Name", value: data.facilityName },
-    { label: "Renewable Procurement", value: data.renewableProcurement },
-    {
-      label: "On-site Generation Exported (kWh)",
-      value: data.onsiteExportedKwh,
-    },
-    { label: "Net Metering Applicable", value: data.netMeteringApplicable },
-    { label: "Reporting Year", value: data.reportingYear },
-    { label: "Reporting Period", value: data.reportingPeriod },
-    { label: "Conditional Approach", value: data.conditionalApproach },
-    { label: "Scope Boundary Notes", value: data.scopeBoundaryNotes },
-
-    { label: "Energy Activity Input", value: data.energyActivityInput },
-    { label: "Energy Category", value: data.energyCategory },
-    { label: "Tracking Type", value: data.trackingType },
-    {
-      label: "Energy Supporting Evidence",
-      value: data.energySupportingEvidenceFile,
-    },
-    { label: "Energy Source Description", value: data.energySourceDescription },
-
-    { label: "Has Renewable Electricity", value: data.hasRenewableElectricity },
-    ...(data.hasRenewableElectricity === "Yes"
-      ? [
-          { label: "Renewable Electricity", value: data.renewableElectricity },
-          {
-            label: "Renewable Energy Consumption",
-            value: data.renewableEnergyConsumption,
-          },
-        ]
-      : []),
-    {
-      label: "Renewable Supporting Evidence",
-      value: data.renewableSupportingEvidenceFile,
-    },
-    {
-      label: "Renewable Energy Source Description",
-      value: data.renewableEnergySourceDescription,
-    },
-  ];
-
-  
-
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f3f2f2ff",
-        padding: "40px 20px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "1500px",
-          border: "2px solid #faf9f8ff",
-          borderRadius: "12px",
-          padding: "40px",
-          backgroundColor: "#f8f7f7ff",
-          boxShadow: "0 8px 32px rgba(255, 107, 53, 0.2)",
-        }}
-      >
-        <h2
-          style={{
-            color: "#000000",
-            marginBottom: "10px",
-            fontSize: "28px",
-            fontWeight: "600",
-            textAlign: "center",
-          }}
-        >
-          Scope 2 Review Details
-        </h2>
+    <main className="h-screen overflow-hidden bg-[#f8f9fa] p-4 font-sans text-gray-900 flex flex-col items-center">
+      <div className="w-full max-w-6xl flex flex-col h-full">
 
-        <p
-          style={{
-            color: "#161414",
-            marginBottom: "24px",
-            textAlign: "center",
-            fontSize: "15px",
-          }}
-        >
-          Please confirm the information below before submitting.
-        </p>
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span className="text-[10px] font-bold text-blue-500 tracking-widest uppercase">Scope 2 Assessment</span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Scope 2 self-assessment</h1>
+            <p className="text-gray-500 text-xs mt-0.5">Share a few basic details. Takes about 2 minutes.</p>
+          </div>
 
-        {/* ===================== PAGE 1 REVIEW ===================== */}
-        <div style={{ fontWeight: 800, marginBottom: "12px" }}>Page 1</div>
+          <div className="flex flex-col items-end w-1/3">
+            {/* Sustally Logo */}
+            <div className="mb-3 flex items-center gap-2 opacity-90">
+              <img src="/sustally-logo.png" alt="Sustally" className="h-8 object-contain" />
+              <div className="h-8 w-[1px] bg-gray-300 mx-1"></div>
+              <div className="flex flex-col justify-center">
+                <span className="text-[9px] font-bold text-gray-500  leading-none mb-[2px]">Choose Sustally as your</span>
+                <span className="text-[9px] font-bold text-gray-500 leading-none">sustainability ally</span>
+              </div>
+            </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
-            width: "100%",
-            backgroundColor: "#FFFFFF",
-            color: "#000000",
-            padding: "16px",
-            borderRadius: "12px",
-            border: "1px solid #000",
-          }}
-        >
-          <Card title="Define your reporting Boundary">
-            <FieldRow label="State" value={data.state} />
-            <FieldRow label="Site Count" value={data.siteCount} />
-            <FieldRow label="Facility / Site Name" value={data.facilityName} />
-          </Card>
-
-          <Card title="Electricity Characteristics">
-            <FieldRow
-              label="Renewable electricity procurement"
-              value={data.renewableProcurement}
-            />
-            <FieldRow
-              label="On-site generation exported (kWh)"
-              value={data.onsiteExportedKwh}
-            />
-            <FieldRow
-              label="Net metering applicable"
-              value={data.netMeteringApplicable}
-            />
-          </Card>
-
-          <Card title="Reporting Period">
-            <FieldRow label="Reporting Year" value={data.reportingYear} />
-            <FieldRow label="Reporting Period" value={data.reportingPeriod} />
-            <FieldRow label="Conditional Approach" value={data.conditionalApproach} />
-          </Card>
-
-          <Card title="Scope boundary notes">
-            <FieldRow label="Notes" value={data.scopeBoundaryNotes} />
-          </Card>
+            <div className="w-full">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-bold text-blue-600 tracking-widest uppercase">5 of 6 - Admin Verification</span>
+                <span className="text-[10px] font-bold text-gray-400">85%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-1">
+                <div className="bg-blue-600 h-1 rounded-full w-[85%]"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* ===================== PAGE 2 REVIEW ===================== */}
-        <div style={{ fontWeight: 800, marginTop: "26px", marginBottom: "12px" }}>
-          Page 2
+        {/* CONTENT GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+
+          {/* Left Column */}
+          <div className="flex flex-col gap-4 overflow-y-auto pr-1">
+            {/* Boundary & Site Details */}
+            <ReviewCard title="Boundary & Site Details" icon={<BoundaryIcon />} accentColor="#6366f1">
+              <DetailGrid>
+                <DetailRow label="Grid Regions" value={data.state} />
+                <DetailRow label="Facility Name" value={data.facilityName} />
+                <DetailRow label="Site ID" value={data.siteCount} />
+                <DetailRow label="Reporting Year" value={data.reportingYear} />
+                <DetailRow label="Period" value={data.reportingPeriod} />
+              </DetailGrid>
+            </ReviewCard>
+
+            {/* Renewable Data */}
+            <ReviewCard title="Renewable Data" icon={<RenewableIcon />} accentColor="#10b981">
+              <DetailGrid>
+                <DetailRow label="Renewable Electricity" value={data.renewableElectricity} />
+                <DetailRow label="Energy Consumption" value={data.renewableEnergyConsumption} />
+                {data.hasRenewableElectricity === 'Yes' && (
+                  <DetailRow label="Source Description" value={data.renewableEnergySourceDescription} />
+                )}
+              </DetailGrid>
+
+            </ReviewCard>
+          </div>
+
+          {/* Right Column */}
+          <div className="flex flex-col gap-4 overflow-y-auto pr-1">
+            {/* Energy Data */}
+            <ReviewCard title="Energy Data" icon={<EnergyIcon />} accentColor="#f59e0b">
+              <DetailGrid>
+                <DetailRow label="Energy Activity" value={data.energyActivityInput} />
+                <DetailRow label="Value Type" value="Gross" />
+                <DetailRow label="Electricity Purchased" value="12 kWh" />
+                <DetailRow label="Energy Consumption" value="12 GJ" />
+                <DetailRow label="Data Source" value={data.energySourceDescription} />
+              </DetailGrid>
+            </ReviewCard>
+
+            {/* Uploaded Evidence */}
+            <ReviewCard title="Uploaded Evidence" icon={<EvidenceIcon />} accentColor="#8b5cf6">
+              <div className="bg-gray-50 rounded-lg p-6 border border-dashed border-gray-300 flex items-center justify-center min-h-[100px] h-full">
+                {data.energySupportingEvidenceFile !== "No supporting evidence uploaded" ? (
+                  <div className="text-center">
+                    <p className="text-xs font-medium text-gray-900 line-clamp-2">{data.energySupportingEvidenceFile}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Energy Evidence</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">No supporting evidence uploaded</p>
+                )}
+              </div>
+            </ReviewCard>
+          </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
-            width: "100%",
-            backgroundColor: "#FFFFFF",
-            color: "#000000",
-            padding: "16px",
-            borderRadius: "12px",
-            border: "1px solid #000",
-          }}
-        >
-          <Card title="Energy Activity">
-            <FieldRow label="Energy activity input" value={data.energyActivityInput} />
-            <FieldRow label="Energy category" value={data.energyCategory} />
-            <FieldRow label="Are you tracking" value={data.trackingType} />
-            <FieldRow
-              label="Supporting evidence"
-              value={data.energySupportingEvidenceFile}
-            />
-            <FieldRow
-              label="Energy source description"
-              value={data.energySourceDescription}
-            />
-          </Card>
-
-          <Card title="Renewable Electricity">
-            <FieldRow
-              label="Do you have renewable electricity?"
-              value={data.hasRenewableElectricity}
-            />
-
-            {data.hasRenewableElectricity === "Yes" && (
-              <>
-                <FieldRow
-                  label="Renewable electricity"
-                  value={data.renewableElectricity}
-                />
-                <FieldRow
-                  label="Energy consumption"
-                  value={data.renewableEnergyConsumption}
-                />
-              </>
-            )}
-
-            <FieldRow
-              label="Supporting evidence"
-              value={data.renewableSupportingEvidenceFile}
-            />
-            <FieldRow
-              label="Energy source description"
-              value={data.renewableEnergySourceDescription}
-            />
-          </Card>
-        </div>
-
-        {/* ACTION BUTTONS */}
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            marginTop: "32px",
-            justifyContent: "flex-end",
-          }}
-        >
+        {/* FOOTER ACTIONS */}
+        <div className="flex justify-center gap-4 mt-6 flex-shrink-0">
           <button
             type="button"
             onClick={() => router.push("/scope")}
-            style={{
-              padding: "12px 20px",
-              borderRadius: "8px",
-              border: "1px solid #000",
-              backgroundColor: "transparent",
-              color: "#0b0a0a",
-              fontSize: "15px",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
+            className="px-6 py-2.5 rounded-full border border-red-100 bg-red-50 text-red-600 text-xs font-bold flex items-center gap-2 hover:bg-red-100 transition-colors"
           >
-            Edit Info
+            <CrossIcon />
+            Reject & request changes
           </button>
 
           <button
             type="button"
-            style={{
-              padding: "12px 24px",
-              borderRadius: "8px",
-              border: "none",
-              backgroundColor: "#FF6B35",
-              color: "#FFFFFF",
-              fontSize: "15px",
-              fontWeight: "600",
-              cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(255, 107, 53, 0.3)",
-            }}
             onClick={() => {
-              // Navigate directly to certificate page
               const params = new URLSearchParams();
               Object.entries(data).forEach(([key, value]) => {
-                if (value !== null && value !== undefined && value !== "-") {
+                if (value !== null && value !== undefined && value !== "-" && value !== "Not specified") {
                   params.append(key, String(value));
                 }
               });
-              router.push(`/scope/certificate?${params.toString()}`);
+              router.push("/scope/certificate?" + params.toString());
             }}
+            className="px-6 py-2.5 rounded-full bg-[#10b981] text-white text-xs font-bold flex items-center gap-2 shadow-lg hover:bg-[#059669] transition-colors shadow-green-200"
           >
-            Confirm & Send
+            <CheckIcon />
+            Approve & verify
           </button>
         </div>
 
       </div>
 
-      {/* Notification Popup (unchanged - kept from your code) */}
+      {/* NOTIFICATION */}
       {notification && (
         <div
-          style={{
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            zIndex: 10000,
-            backgroundColor: notification.type === "success" ? "#1a1a1a" : "#2a1a1a",
-            border: `2px solid ${
-              notification.type === "success" ? "#4CAF50" : "#FF6B35"
-            }`,
-            borderRadius: "16px",
-            padding: "24px 32px",
-            boxShadow: `0 8px 32px rgba(${
-              notification.type === "success"
-                ? "76, 175, 80"
-                : "255, 107, 53"
-            }, 0.4)`,
-            minWidth: "320px",
-            maxWidth: "500px",
-            animation: "slideIn 0.3s ease-out",
-            backdropFilter: "blur(10px)",
-          }}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 p-6 rounded-2xl border-2 shadow-2xl min-w-[320px] backdrop-blur-md animate-[slideIn_0.3s_ease-out]
+                        ${notification.type === 'success'
+              ? 'bg-[#1a1a1a] border-green-500 shadow-green-500/20'
+              : 'bg-[#2a1a1a] border-[#FF6B35] shadow-[#FF6B35]/20'
+            }`}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "16px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  backgroundColor:
-                    notification.type === "success"
-                      ? "rgba(76, 175, 80, 0.2)"
-                      : "rgba(255, 107, 53, 0.2)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                {notification.type === "success" ? (
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#4CAF50"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                ) : (
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#FF6B35"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                )}
-              </div>
-
-              <p
-                style={{
-                  margin: 0,
-                  color: "#FFFFFF",
-                  fontSize: "16px",
-                  fontWeight: "500",
-                  lineHeight: "1.5",
-                }}
-              >
-                {notification.message}
-              </p>
+          <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
+                             ${notification.type === 'success' ? 'bg-green-500/20 text-green-500' : 'bg-[#FF6B35]/20 text-[#FF6B35]'}`}>
+              {notification.type === "success" ? <CheckIcon /> : <CrossIcon />}
             </div>
-
+            <p className="text-white font-medium text-base leading-relaxed">{notification.message}</p>
             <button
               onClick={() => setNotification(null)}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#B5B5B5",
-                cursor: "pointer",
-                padding: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "4px",
-                transition: "all 0.2s",
-              }}
+              className="ml-auto p-1 text-gray-400 hover:text-white transition-colors"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
@@ -505,37 +303,12 @@ export default function ScopeReviewPage() {
           </div>
         </div>
       )}
-
       {notification && (
         <div
           onClick={() => setNotification(null)}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            zIndex: 9999,
-            animation: "fadeIn 0.3s ease-out",
-          }}
+          className="fixed inset-0 bg-black/60 z-[49] animate-[fadeIn_0.3s_ease-out]"
         />
       )}
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes slideIn {
-            from { opacity: 0; transform: translate(-50%, -60%); }
-            to { opacity: 1; transform: translate(-50%, -50%); }
-          }
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-        `,
-        }}
-      />
     </main>
   );
 }

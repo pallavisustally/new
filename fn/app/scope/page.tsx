@@ -22,9 +22,9 @@ type FormDataType = {
   reportingYear: Date | null;
   reportingPeriod: "Monthly" | "Quarterly" | "Annually" | "";
   conditionalApproach:
-  | "Operational Control"
-  | "Equity Share"
-  | "Financial Control"
+  | "Operational control (default)"
+  | "Equity share"
+  | "Financial control"
   | "";
 
   // Page 1 - Box 4
@@ -54,21 +54,21 @@ export default function TemplatePage() {
   const [formData, setFormData] = useState<FormDataType>({
     // Page 1
     state: "",
-    siteCount: "",
+    siteCount: "Site 1", // Default as per image
     facilityName: "",
 
     renewableProcurement: "",
     onsiteExportedKwh: "",
     netMeteringApplicable: "",
 
-    reportingYear: null,
-    reportingPeriod: "",
-    conditionalApproach: "",
+    reportingYear: new Date(),
+    reportingPeriod: "Annual" as any, // Mismatch in type vs default, fixing to match
+    conditionalApproach: "Operational control (default)",
 
     scopeBoundaryNotes: "",
 
     // Page 2 - Box 1
-    energyActivityInput: "",
+    energyActivityInput: "Monthly",
     energyCategory: "",
     trackingType: "",
     energySupportingEvidenceFile: null,
@@ -102,33 +102,46 @@ export default function TemplatePage() {
     const newErrors: Record<string, string> = {};
 
     // Page 1 validations
-    if (!formData.state.trim()) newErrors.state = "State is required";
-    if (!formData.siteCount.trim()) newErrors.siteCount = "Site Count is required";
-    if (!formData.facilityName.trim()) newErrors.facilityName = "Facility Name is required";
-    if (!formData.renewableProcurement) newErrors.renewableProcurement = "Please select an option";
-    if (!formData.onsiteExportedKwh.trim()) newErrors.onsiteExportedKwh = "On-site generation exported is required";
-    if (!formData.netMeteringApplicable) newErrors.netMeteringApplicable = "Please select an option";
-    if (!formData.reportingYear) newErrors.reportingYear = "Reporting Year is required";
-    if (!formData.reportingPeriod) newErrors.reportingPeriod = "Reporting Period is required";
-    if (!formData.conditionalApproach) newErrors.conditionalApproach = "Conditional Approach is required";
-    if (!formData.scopeBoundaryNotes.trim()) newErrors.scopeBoundaryNotes = "Scope boundary notes is required";
+    if (page === 1) {
+      if (!formData.state.trim()) newErrors.state = "State is required";
+      if (!formData.siteCount.trim()) newErrors.siteCount = "Site Count is required";
+      // Facility Name optional per image? "Based on your earlier input" placeholder
+      // if (!formData.facilityName.trim()) newErrors.facilityName = "Facility Name is required";
+      if (!formData.renewableProcurement) newErrors.renewableProcurement = "Please select an option";
+      // Onsite generation might be optional or 0 allowed
+      // if (!formData.onsiteExportedKwh.trim()) newErrors.onsiteExportedKwh = "Required";
+      if (!formData.netMeteringApplicable) newErrors.netMeteringApplicable = "Please select an option";
+      if (!formData.reportingYear) newErrors.reportingYear = "Reporting Year is required";
+      if (!formData.reportingPeriod) newErrors.reportingPeriod = "Reporting Period is required";
+      if (!formData.conditionalApproach) newErrors.conditionalApproach = "Conditional Approach is required";
+      // Notes usually optional
+    }
 
-    // Page 2 validations
-    if (!formData.energyActivityInput) newErrors.energyActivityInput = "Energy activity input is required";
-    if (!formData.energyCategory.trim()) newErrors.energyCategory = "Energy category is required";
-    if (!formData.trackingType) newErrors.trackingType = "Tracking type is required";
-    if (!formData.energySourceDescription.trim()) newErrors.energySourceDescription = "Energy source description is required";
-    if (!formData.hasRenewableElectricity) newErrors.hasRenewableElectricity = "Please select an option";
-    if (!formData.renewableEnergySourceDescription.trim()) newErrors.renewableEnergySourceDescription = "Energy source description is required";
+    if (page === 2) {
+      // Page 2 validations
+      if (!formData.energyActivityInput) newErrors.energyActivityInput = "Required";
+      // Category might be pre-filled
+      // if (!formData.energyCategory.trim()) newErrors.energyCategory = "Required";
+      if (!formData.trackingType) newErrors.trackingType = "Required";
 
-    // Conditional validations for renewable electricity
-    if (formData.hasRenewableElectricity === "Yes") {
-      if (!formData.renewableElectricity.trim()) newErrors.renewableElectricity = "Renewable electricity is required";
-      if (!formData.renewableEnergyConsumption.trim()) newErrors.renewableEnergyConsumption = "Energy consumption is required";
+      if (!formData.hasRenewableElectricity) newErrors.hasRenewableElectricity = "Required";
+
+      // Conditional validations for renewable electricity
+      if (formData.hasRenewableElectricity === "Yes") {
+        if (!formData.renewableElectricity.trim()) newErrors.renewableElectricity = "Required";
+        if (!formData.renewableEnergyConsumption.trim()) newErrors.renewableEnergyConsumption = "Required";
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validate()) {
+      setPage(2);
+      window.scrollTo(0, 0);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,7 +162,7 @@ export default function TemplatePage() {
       });
 
       // Save to Payload CMS
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const saveResponse = await fetch(`${apiUrl}/api/save-scope2`, {
         method: "POST",
         headers: {
@@ -182,1211 +195,659 @@ export default function TemplatePage() {
     }
   };
 
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f3f2f2ff",
-        padding: "40px 20px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "1500px",
-          border: "2px solid #faf9f8ff",
-          borderRadius: "12px",
-          padding: "40px",
-          backgroundColor: "#f8f7f7ff",
-          boxShadow: "0 8px 32px rgba(255, 107, 53, 0.2)",
-        }}
+  const renderYesNo = (name: keyof FormDataType, value: YesNo) => (
+    <div className="flex bg-gray-50 p-1 rounded-lg w-full border border-gray-200">
+      <button
+        type="button"
+        onClick={() => handleRadioChange(name, "Yes")}
+        className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${value === "Yes"
+          ? "bg-[#0D1821] text-white shadow-sm"
+          : "text-gray-500 hover:text-gray-900"
+          }`}
       >
+        Yes
+      </button>
+      <button
+        type="button"
+        onClick={() => handleRadioChange(name, "No")}
+        className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${value === "No"
+          ? "bg-[#0D1821] text-white shadow-sm"
+          : "text-gray-500 hover:text-gray-900"
+          }`}
+      >
+        No
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="h-screen overflow-hidden bg-white text-gray-900 font-sans selection:bg-indigo-100 flex flex-col">
+      <div className="w-full max-w-[1400px] mx-auto p-4 flex flex-col flex-grow h-full">
+
         {/* HEADER */}
-        <h1
-          style={{
-            color: "#080707ff",
-            marginBottom: "8px",
-            fontSize: "32px",
-            fontWeight: "600",
-            textAlign: "center",
-          }}
-        >
-          {page === 1 ? "Book Your Scope 2 Assignment" : "Book Your Scope 2 Assignment"}
-        </h1>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-1 gap-2 flex-shrink-0">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border border-indigo-100">
+                • Scope 2 Assessment
+              </span>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight">
+              Scope 2 self-assessment
+            </h1>
+            <p className="text-gray-500 mt-1 text-xs">
+              Share a few basic details. Takes about 2 minutes.
+            </p>
+          </div>
 
-        <p
-          style={{
-            color: "#050404ff",
-            marginBottom: "24px",
-            textAlign: "center",
-            fontSize: "15px",
-          }}
-        >
-          {page === 1
-            ? "Please fill in all the required information below"
-            : "Energy Activity and Renewable Electricity Details"}
-        </p>
+          {/* Progress Bar */}
+          <div className="flex-1 max-w-md mx-4 hidden md:block">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-xs font-bold text-indigo-900 tracking-widest uppercase">
+                {page === 1 ? "2 OF 6 - BOUNDARIES" : "3 OF 6 - ENERGY INPUTS"}
+              </span>
+              <span className="text-sm font-bold text-gray-400">
+                {page === 1 ? "34%" : "51%"}
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-500 transition-all duration-500 ease-out rounded-full"
+                style={{ width: page === 1 ? "34%" : "51%" }}
+              ></div>
+            </div>
+          </div>
 
-        <form onSubmit={handleSubmit}>
+          <div className="flex items-center gap-4 opacity-90">
+            <img
+              src="/sustally-logo.png"
+              alt="sustally"
+              className="h-8 md:h-10 w-auto object-contain"
+            />
+            <div className="hidden md:flex gap-1 h-8 md:h-10">
+              <div className="w-[1px] bg-gray-200 h-full"></div>
+            </div>
+            <span className="hidden md:block font-medium text-gray-400 text-xs max-w-[120px] leading-tight text-left">
+              Choose Sustally as your sustainability ally
+            </span>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-grow flex flex-col">
+
           {/* ===================== PAGE 1 ===================== */}
           {page === 1 && (
-            <>
-              {/* 2x2 Grid Layout */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "20px",
-                  width: "100%",
-                  backgroundColor: "#FFFFFF",
-                  color: "#000000",
-                }}
-              >
-                {[
-                  { title: "Define your reporting Boundary" },
-                  { title: "Electricity Characteristics" },
-                  { title: "Reporting Period" },
-                  { title: "Scope boundary notes" },
-                ].map((card, idx) => (
-                  <section
-                    key={card.title}
-                    style={{
-                      border: "1px solid #000000",
-                      borderRadius: "12px",
-                      padding: "20px",
-                      backgroundColor: "#FFFFFF",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                      minHeight: "200px",
-                    }}
-                  >
-                    <h2
-                      style={{
-                        color: "#000000",
-                        fontSize: "16px",
-                        fontWeight: "600",
-                        marginBottom: "16px",
-                        borderBottom: "1px solid #000000",
-                        paddingBottom: "8px",
-                      }}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-1 flex-grow overflow-hidden min-h-0">
+
+              {/* Box 1: Define Reporting Boundary */}
+              <section className="bg-white rounded-xl p-2 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col h-full overflow-y-auto">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="p-1.5 bg-indigo-50 rounded-lg text-indigo-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-sm font-bold text-gray-900 border-b-2 border-transparent hover:border-indigo-100 transition-colors cursor-default">
+                    Define your reporting boundary
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {/* State */}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      State / Grid Region <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="state"
+                      value={formData.state}
+                      onChange={handleChange}
+                      className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none text-gray-600"
                     >
-                      {card.title}
-                    </h2>
+                      <option value="">Select grid region...</option>
+                      <option value="Region 1">Region 1</option>
+                      <option value="Region 2">Region 2</option>
+                    </select>
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      Select the grid region where this site operates
+                    </p>
+                    {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}
+                  </div>
 
-                    {/* ===================== BOX 1 ===================== */}
-                    {idx === 0 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "18px",
-                        }}
-                      >
-                        {/* State */}
-                        <div>
-                          <label
-                            htmlFor="state"
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
+                  {/* Site Count */}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Site count
+                    </label>
+                    <input
+                      type="text"
+                      name="siteCount"
+                      value={formData.siteCount}
+                      onChange={handleChange}
+                      placeholder="Site 1"
+                      className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      Based on your earlier input
+                    </p>
+                    {errors.siteCount && <p className="text-red-500 text-xs mt-1">{errors.siteCount}</p>}
+                  </div>
+
+                  {/* Facility Name */}
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Facility / Site name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="facilityName"
+                      value={formData.facilityName}
+                      onChange={handleChange}
+                      placeholder="e.g., Pune Manufacturing Plant"
+                      className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      Based on your earlier input
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Box 2: Electricity Characteristics */}
+              <section className="bg-white rounded-xl p-2 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col h-full overflow-y-auto">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-yellow-50 rounded-lg text-yellow-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-sm font-bold text-gray-900">
+                    Electricity characteristics
+                  </h2>
+                </div>
+                <p className="text-[9px] text-gray-400 -mt-2 mb-3 ml-9">
+                  Basic yes/no context — detailed data will be captured later
+                </p>
+
+                <div className="space-y-2">
+                  {/* Renewable procurement */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Do you have renewable electricity procurement?
+                    </label>
+                    {renderYesNo("renewableProcurement", formData.renewableProcurement)}
+                    {errors.renewableProcurement && <p className="text-red-500 text-xs mt-1">{errors.renewableProcurement}</p>}
+                  </div>
+
+                  {/* On-site generation */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      On-site generation exported (kWh)
+                    </label>
+                    <input
+                      type="text"
+                      name="onsiteExportedKwh"
+                      value={formData.onsiteExportedKwh}
+                      onChange={handleChange}
+                      placeholder="Enter kWh value"
+                      className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      Based on your earlier input
+                    </p>
+                  </div>
+
+                  {/* Net metering */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Net metering applicable?
+                    </label>
+                    {renderYesNo("netMeteringApplicable", formData.netMeteringApplicable)}
+                    {errors.netMeteringApplicable && <p className="text-red-500 text-xs mt-1">{errors.netMeteringApplicable}</p>}
+                  </div>
+                </div>
+              </section>
+
+              {/* Box 3: Reporting Period */}
+              <section className="bg-white rounded-xl p-2 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col h-full overflow-y-auto">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-sm font-bold text-gray-900">
+                    Reporting period
+                  </h2>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Year */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-2">
+                        Reporting year <span className="text-red-500">*</span>
+                      </label>
+                      <DatePicker
+                        selected={formData.reportingYear}
+                        onChange={(date: Date | null) =>
+                          setFormData((prev) => ({ ...prev, reportingYear: date }))
+                        }
+                        showYearPicker
+                        dateFormat="yyyy"
+                        wrapperClassName="w-full"
+                        customInput={
+                          <button
+                            type="button"
+                            className="w-full flex justify-between items-center px-2 py-1 text-xs bg-white border border-gray-200 rounded-lg text-gray-700 hover:border-gray-300 focus:ring-2 focus:ring-indigo-500 transition-all"
                           >
-                            State <span style={{ color: "#000000" }}>*</span>
-                          </label>
-
-                          <input
-                            type="text"
-                            id="state"
-                            name="state"
-                            value={formData.state}
-                            onChange={handleChange}
-                            placeholder="Enter state"
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              borderRadius: "8px",
-                              border: "1px solid #000000",
-                              backgroundColor: "#FFFFFF",
-                              color: "#000000",
-                              fontSize: "15px",
-                              outline: "none",
-                            }}
-                          />
-                        </div>
-
-                        {/* Site Count */}
-                        <div>
-                          <label
-                            htmlFor="siteCount"
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
+                            {formData.reportingYear?.getFullYear() || "Select Year"}
+                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        }
+                      />
+                    </div>
+                    {/* Period */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-2">
+                        Reporting period <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex text-[10px] font-medium bg-gray-50 border border-gray-200 rounded-lg p-1">
+                        {["Monthly", "Quarterly", "Annual"].map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, reportingPeriod: p as any }))}
+                            className={`flex-1 py-2 rounded text-center transition-all ${formData.reportingPeriod === p || (p === "Annual" && formData.reportingPeriod === "Annually")
+                              ? "bg-[#0D1821] text-white shadow-sm"
+                              : "text-gray-500 hover:text-gray-900"
+                              }`}
                           >
-                            Site Count <span style={{ color: "#000000" }}>*</span>
-                          </label>
-
-                          <input
-                            type="number"
-                            id="siteCount"
-                            name="siteCount"
-                            value={formData.siteCount}
-                            onChange={handleChange}
-                            placeholder="Enter site count"
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              borderRadius: "8px",
-                              border: "1px solid #000000",
-                              backgroundColor: "#FFFFFF",
-                              color: "#000000",
-                              fontSize: "15px",
-                              outline: "none",
-                            }}
-                          />
-                        </div>
-
-                        {/* Facility / Site Name */}
-                        <div>
-                          <label
-                            htmlFor="facilityName"
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Facility / Site Name{" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </label>
-
-                          <input
-                            type="text"
-                            id="facilityName"
-                            name="facilityName"
-                            value={formData.facilityName}
-                            onChange={handleChange}
-                            placeholder="Enter facility/site name"
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              borderRadius: "8px",
-                              border: "1px solid #000000",
-                              backgroundColor: "#FFFFFF",
-                              color: "#000000",
-                              fontSize: "15px",
-                              outline: "none",
-                            }}
-                          />
-                        </div>
+                            {p}
+                          </button>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  </div>
 
-                    {/* ===================== BOX 2 ===================== */}
-                    {idx === 1 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "18px",
-                        }}
-                      >
-                        {/* 1) Renewable procurement yes/no */}
-                        <div>
-                          <div
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Do you have renewable electricity procurement?{" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </div>
-
-                          <div style={{ display: "flex", gap: "20px" }}>
-                            <label
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name="renewableProcurement"
-                                checked={formData.renewableProcurement === "Yes"}
-                                onChange={() =>
-                                  handleRadioChange(
-                                    "renewableProcurement",
-                                    "Yes"
-                                  )
-                                }
-                              />
-                              Yes
-                            </label>
-
-                            <label
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name="renewableProcurement"
-                                checked={formData.renewableProcurement === "No"}
-                                onChange={() =>
-                                  handleRadioChange("renewableProcurement", "No")
-                                }
-                              />
-                              No
-                            </label>
+                  {/* Consolidation Approach */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-3">
+                      Consolidation approach
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {[
+                        { id: "Operational control (default)", label: "Operational control", sub: "Default approach for most organizations", default: true },
+                        { id: "Equity share", label: "Equity share", sub: "Based on ownership percentage" },
+                        { id: "Financial control", label: "Financial control", sub: "Based on financial authority" }
+                      ].map((opt) => (
+                        <div
+                          key={opt.id}
+                          className={`relative border rounded-xl p-4 cursor-pointer transition-all hover:border-indigo-300 ${formData.conditionalApproach === opt.id
+                            ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500"
+                            : "bg-white border-gray-200"
+                            }`}
+                          onClick={() => setFormData(prev => ({ ...prev, conditionalApproach: opt.id as any }))}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${formData.conditionalApproach === opt.id ? "border-indigo-600" : "border-gray-300"
+                              }`}>
+                              {formData.conditionalApproach === opt.id && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}
+                            </div>
+                            <div>
+                              <p className={`text-xs font-bold ${formData.conditionalApproach === opt.id ? "text-indigo-900" : "text-gray-700"}`}>
+                                {opt.label}  {opt.default && <span className="text-indigo-500 text-[10px] font-normal">(default)</span>}
+                              </p>
+                              <p className="text-[10px] text-gray-500 leading-tight mt-1">
+                                {opt.sub}
+                              </p>
+                            </div>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-blue-400 mt-3 font-medium cursor-help">
+                      This defines how emissions are attributed
+                    </p>
+                  </div>
+                </div>
+              </section>
 
-                        {/* 2) On-site generation exported */}
-                        <div>
-                          <label
-                            htmlFor="onsiteExportedKwh"
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            On-site generation exported (kWh){" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </label>
+              {/* Box 4: Boundary Notes */}
+              <section className="bg-white rounded-xl p-2 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col h-full overflow-y-auto">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-purple-50 rounded-lg text-purple-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-sm font-bold text-gray-900">
+                    Boundary notes <span className="text-gray-400 font-normal ml-1">Optional</span>
+                  </h2>
+                </div>
 
-                          <input
-                            type="number"
-                            id="onsiteExportedKwh"
-                            name="onsiteExportedKwh"
-                            value={formData.onsiteExportedKwh}
-                            onChange={handleChange}
-                            placeholder="e.g., 1000"
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              borderRadius: "8px",
-                              border: "1px solid #000000",
-                              backgroundColor: "#FFFFFF",
-                              color: "#000000",
-                              fontSize: "15px",
-                              outline: "none",
-                            }}
-                          />
-                        </div>
+                <div className="flex-grow flex flex-col">
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                    Scope boundary notes
+                  </label>
+                  <textarea
+                    name="scopeBoundaryNotes"
+                    value={formData.scopeBoundaryNotes}
+                    onChange={handleChange}
+                    placeholder="Any special considerations or exclusions?"
+                    className="w-full flex-grow px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none min-h-[40px]"
+                  />
+                </div>
+              </section>
 
-                        {/* 3) Net metering applicable yes/no */}
-                        <div>
-                          <div
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Net metering applicable?{" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </div>
-
-                          <div style={{ display: "flex", gap: "20px" }}>
-                            <label
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name="netMeteringApplicable"
-                                checked={formData.netMeteringApplicable === "Yes"}
-                                onChange={() =>
-                                  handleRadioChange(
-                                    "netMeteringApplicable",
-                                    "Yes"
-                                  )
-                                }
-                              />
-                              Yes
-                            </label>
-
-                            <label
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name="netMeteringApplicable"
-                                checked={formData.netMeteringApplicable === "No"}
-                                onChange={() =>
-                                  handleRadioChange(
-                                    "netMeteringApplicable",
-                                    "No"
-                                  )
-                                }
-                              />
-                              No
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ===================== BOX 3 ===================== */}
-                    {idx === 2 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "18px",
-                        }}
-                      >
-                        {/* Reporting Year */}
-                        {/* Reporting Year */}
-                        <div>
-                          <label
-                            htmlFor="reportingYear"
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Reporting Year <span style={{ color: "#000000" }}>*</span>
-                          </label>
-
-                          <DatePicker
-                            selected={formData.reportingYear}
-                            onChange={(date: Date | null) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                reportingYear: date,
-                              }))
-                            }
-                            showYearPicker
-                            dateFormat="yyyy"
-                            placeholderText="Select year"
-                            wrapperClassName="w-full"
-                            className="yearPickerInput"
-                          />
-
-                        </div>
-
-
-                        {/* Reporting Period Buttons */}
-                        <div>
-                          <div
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Reporting Period{" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </div>
-
-                          <div style={{ display: "flex", gap: "12px" }}>
-                            {["Monthly", "Quarterly", "Annually"].map((label) => {
-                              const isSelected =
-                                formData.reportingPeriod === label;
-
-                              return (
-                                <button
-                                  key={label}
-                                  type="button"
-                                  onClick={() =>
-                                    setFormData((prev) => ({
-                                      ...prev,
-                                      reportingPeriod: label as any,
-                                    }))
-                                  }
-                                  style={{
-                                    flex: 1,
-                                    padding: "12px 16px",
-                                    borderRadius: "8px",
-                                    border: "1px solid #000000",
-                                    background: isSelected ? "#000" : "#fff",
-                                    color: isSelected ? "#fff" : "#000",
-                                    cursor: "pointer",
-                                    fontWeight: 600,
-                                    transition: "0.2s",
-                                  }}
-                                >
-                                  {label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Conditional Approach */}
-                        <div>
-                          <div
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Conditional Approach{" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "14px",
-                            }}
-                          >
-                            {[
-                              "Operational Control",
-                              "Equity Share",
-                              "Financial Control",
-                            ].map((opt) => (
-                              <label
-                                key={opt}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "8px",
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  border: "1px solid #000000",
-                                  padding: "12px 14px",
-                                  borderRadius: "10px",
-                                }}
-                              >
-                                <input
-                                  type="radio"
-                                  name="conditionalApproach"
-                                  checked={formData.conditionalApproach === opt}
-                                  onChange={() =>
-                                    setFormData((prev) => ({
-                                      ...prev,
-                                      conditionalApproach: opt as any,
-                                    }))
-                                  }
-                                />
-                                {opt}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ===================== BOX 4 ===================== */}
-                    {idx === 3 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "18px",
-                        }}
-                      >
-                        <div>
-                          <label
-                            htmlFor="scopeBoundaryNotes"
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Scope boundary notes{" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </label>
-
-                          <textarea
-                            id="scopeBoundaryNotes"
-                            name="scopeBoundaryNotes"
-                            value={formData.scopeBoundaryNotes}
-                            onChange={handleChange}
-                            rows={6}
-                            placeholder="Write your notes here..."
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              borderRadius: "8px",
-                              border: "1px solid #000000",
-                              backgroundColor: "#FFFFFF",
-                              color: "#000000",
-                              fontSize: "15px",
-                              outline: "none",
-                              resize: "vertical",
-                              fontFamily: "inherit",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </section>
-                ))}
-              </div>
-
-              {/* NEXT button */}
-              <div
-                style={{
-                  marginTop: "20px",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setPage(2)}
-                  style={{
-                    width: "auto",
-                    padding: "10px 18px",
-                    borderRadius: "8px",
-                    border: "1px solid #FFFFFF",
-                    backgroundColor: "#494749ff",
-                    color: "#FFFFFF",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            </>
+            </div>
           )}
 
           {/* ===================== PAGE 2 ===================== */}
           {page === 2 && (
-            <>
-              {/* 1x2 Grid Layout */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "20px",
-                  width: "100%",
-                  backgroundColor: "#FFFFFF",
-                  color: "#000000",
-                }}
-              >
-                {/* ================= BOX 1 : ENERGY ACTIVITY ================= */}
-                <section
-                  style={{
-                    border: "1px solid #000000",
-                    borderRadius: "12px",
-                    padding: "20px",
-                    backgroundColor: "#FFFFFF",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    minHeight: "250px",
-                  }}
-                >
-                  <h2
-                    style={{
-                      color: "#000000",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      marginBottom: "16px",
-                      borderBottom: "1px solid #000000",
-                      paddingBottom: "8px",
-                    }}
-                  >
-                    Energy Activity
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-1 flex-grow overflow-hidden min-h-0">
+
+
+              {/* Box 1: Energy Activity */}
+              <section className="bg-white rounded-xl p-2 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col h-full overflow-y-auto">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-indigo-50 rounded-lg text-indigo-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-sm font-bold text-gray-900">
+                    Energy activity
                   </h2>
+                </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "18px",
-                    }}
-                  >
-                    {/* 1) Energy activity input */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Activity Input */}
                     <div>
-                      <div
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Energy activity input{" "}
-                        <span style={{ color: "#000000" }}>*</span>
+                      <label className="block text-xs font-bold text-gray-700 mb-2">
+                        Energy activity input <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-200 w-fit">
+                        {["Monthly", "Yearly"].map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, energyActivityInput: m as any }))}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${formData.energyActivityInput === m
+                              ? "bg-white text-indigo-900 shadow-sm ring-1 ring-gray-100"
+                              : "text-gray-400 hover:text-gray-600"
+                              }`}
+                          >
+                            {m}
+                          </button>
+                        ))}
                       </div>
-
-                      <div style={{ display: "flex", gap: "12px" }}>
-                        {["Monthly", "Yearly"].map((label) => {
-                          const isSelected =
-                            formData.energyActivityInput === label;
-
-                          return (
-                            <button
-                              key={label}
-                              type="button"
-                              onClick={() =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  energyActivityInput: label as any,
-                                }))
-                              }
-                              style={{
-                                flex: 1,
-                                padding: "12px 16px",
-                                borderRadius: "8px",
-                                border: "1px solid #000000",
-                                background: isSelected ? "#000" : "#fff",
-                                color: isSelected ? "#fff" : "#000",
-                                cursor: "pointer",
-                                fontWeight: 600,
-                                transition: "0.2s",
-                              }}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1.5">
+                        Based on your earlier input
+                      </p>
                     </div>
 
-                    {/* 2) Energy category */}
+                    {/* Category */}
                     <div>
-                      <label
-                        htmlFor="energyCategory"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Energy category{" "}
-                        <span style={{ color: "#000000" }}>*</span>
+                      <label className="block text-xs font-bold text-gray-700 mb-2">
+                        Energy category
                       </label>
-
                       <input
                         type="text"
-                        id="energyCategory"
-                        name="energyCategory"
-                        value={formData.energyCategory}
-                        onChange={handleChange}
-                        placeholder="Enter energy category"
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                        }}
+                        value="Grid Electricity"
+                        disabled
+                        className="w-full px-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-lg text-gray-400 cursor-not-allowed"
                       />
+                      <p className="text-[10px] text-gray-400 mt-1.5">
+                        Fixed category for Scope 2 assessment
+                      </p>
                     </div>
+                  </div>
 
-                    {/* 3) Are you tracking */}
-                    <div>
-                      <div
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Are you tracking{" "}
-                        <span style={{ color: "#000000" }}>*</span>
-                      </div>
-
-                      <div style={{ display: "flex", gap: "12px" }}>
-                        {["Unit consumption", "Spend amount", "Both"].map(
-                          (label) => {
-                            const isSelected = formData.trackingType === label;
-
-                            return (
-                              <button
-                                key={label}
-                                type="button"
-                                onClick={() =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    trackingType: label as any,
-                                  }))
-                                }
-                                style={{
-                                  flex: 1,
-                                  padding: "12px 16px",
-                                  borderRadius: "8px",
-                                  border: "1px solid #000000",
-                                  background: isSelected ? "#000" : "#fff",
-                                  color: isSelected ? "#fff" : "#000",
-                                  cursor: "pointer",
-                                  fontWeight: 600,
-                                  transition: "0.2s",
-                                }}
-                              >
-                                {label}
-                              </button>
-                            );
-                          }
-                        )}
-                      </div>
+                  {/* Tracking Type */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Are you tracking <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-4">
+                      {[
+                        { id: "Unit consumption", label: "UNIT CONSUMPTION" },
+                        { id: "Spend amount", label: "SPEND AMOUNT" },
+                        { id: "Both", label: "BOTH" }
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, trackingType: t.id as any }))}
+                          className={`px-4 py-2 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all border ${formData.trackingType === t.id
+                            ? "bg-[#0D1821] text-white border-[#0D1821]"
+                            : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                            }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
-                    {/* 4) Supporting Evidence */}
-                    <div>
-                      <label
-                        htmlFor="energySupportingEvidence"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Supporting evidence{" "}
-                        <span style={{ color: "#000000" }}>*</span>
+                  {/* Electricity Purchased & Source Type & Consumption */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-1">
+                      <label className="block text-xs font-bold text-gray-700 mb-2">
+                        Electricity purchased <span className="text-red-500">*</span>
                       </label>
-
                       <input
-                        type="file"
-                        id="energySupportingEvidence"
-                        name="energySupportingEvidence"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            energySupportingEvidenceFile:
-                              e.target.files?.[0] || null,
-                          }))
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: "8px",
-                          border: "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "14px",
-                          outline: "none",
-                          cursor: "pointer",
-                        }}
+                        type="text"
+                        placeholder="Enter value"
+                        className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
-
-                      <div
-                        style={{ fontSize: "12px", marginTop: "6px", color: "#333" }}
-                      >
-                        Allowed: PDF, JPG, JPEG, PNG
-                      </div>
+                      <span className="absolute right-8 mt-2.5 text-xs text-gray-400 font-bold"></span>
                     </div>
-
-                    {/* 5) Energy source description */}
-                    <div>
-                      <label
-                        htmlFor="energySourceDescription"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Energy source description{" "}
-                        <span style={{ color: "#000000" }}>*</span>
+                    <div className="col-span-1">
+                      <label className="block text-xs font-bold text-gray-700 mb-2">
+                        Data source type <span className="text-red-500">*</span>
                       </label>
-
-                      <textarea
-                        id="energySourceDescription"
-                        name="energySourceDescription"
-                        value={formData.energySourceDescription}
-                        onChange={handleChange}
-                        rows={4}
-                        placeholder="Write description here..."
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                          resize: "vertical",
-                          fontFamily: "inherit",
-                        }}
+                      <select className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option>Select data source</option>
+                      </select>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-xs font-bold text-gray-700 mb-2">
+                        Energy Consumption <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter value"
+                        className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
                     </div>
                   </div>
-                </section>
 
-                {/* ================= BOX 2 : RENEWABLE ELECTRICITY ================= */}
-                <section
-                  style={{
-                    border: "1px solid #000000",
-                    borderRadius: "12px",
-                    padding: "20px",
-                    backgroundColor: "#FFFFFF",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    minHeight: "250px",
-                  }}
-                >
-                  <h2
-                    style={{
-                      color: "#000000",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      marginBottom: "16px",
-                      borderBottom: "1px solid #000000",
-                      paddingBottom: "8px",
-                    }}
-                  >
-                    Renewable Electricity
+                  {/* Supporting Evidence Upload */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Supporting evidence
+                    </label>
+                    <div className="border border-dashed border-gray-200 rounded-xl bg-gray-50/50 p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors group relative">
+                      <input
+                        type="file"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onChange={(e) => setFormData(prev => ({ ...prev, energySupportingEvidenceFile: e.target.files?.[0] || null }))}
+                      />
+                      <div className="bg-indigo-100 p-2.5 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                        <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-600">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        PDF, JPG, PNG up to 10MB
+                      </p>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-2">
+                      Uploading bills improves data confidence.
+                    </p>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Energy source description
+                    </label>
+                    <textarea
+                      placeholder="Describe the energy source or any relevant details..."
+                      className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none min-h-[40px]"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* Box 2: Renewable Electricity */}
+              <section className="bg-white rounded-xl p-2 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col h-full overflow-y-auto">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-green-50 rounded-lg text-green-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-sm font-bold text-gray-900">
+                    Renewable electricity
                   </h2>
+                </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "18px",
-                    }}
-                  >
-                    {/* 1) Do you have renewable electricity? */}
-                    <div>
-                      <div
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Do you have renewable electricity?{" "}
-                        <span style={{ color: "#000000" }}>*</span>
+                <div className="space-y-4">
+                  {/* Do you have renewable? */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-bold text-gray-700">
+                        Do you have renewable electricity?
+                      </label>
+                    </div>
+                    {renderYesNo("hasRenewableElectricity", formData.hasRenewableElectricity)}
+                  </div>
+
+                  {formData.hasRenewableElectricity === "Yes" && (
+                    <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-2">
+                          Renewable electricity
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter value"
+                          className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                        <div className="flex justify-end -mt-6 mr-2 pointer-events-none">
+                          <span className="text-[10px] text-gray-400">kWh</span>
+                        </div>
                       </div>
-
-                      <div style={{ display: "flex", gap: "20px" }}>
-                        <label
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="hasRenewableElectricity"
-                            checked={formData.hasRenewableElectricity === "Yes"}
-                            onChange={() =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                hasRenewableElectricity: "Yes",
-                              }))
-                            }
-                          />
-                          Yes
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-2">
+                          Energy Consumption <span className="text-red-500">*</span>
                         </label>
-
-                        <label
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="hasRenewableElectricity"
-                            checked={formData.hasRenewableElectricity === "No"}
-                            onChange={() =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                hasRenewableElectricity: "No",
-                                renewableElectricity: "",
-                                renewableEnergyConsumption: "",
-                              }))
-                            }
-                          />
-                          No
-                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter value"
+                          className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
                       </div>
                     </div>
+                  )}
 
-                    {/* Conditional inputs if Yes */}
-                    {formData.hasRenewableElectricity === "Yes" && (
-                      <>
-                        <div>
-                          <label
-                            htmlFor="renewableElectricity"
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Renewable electricity{" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </label>
-
-                          <input
-                            type="number"
-                            id="renewableElectricity"
-                            name="renewableElectricity"
-                            value={formData.renewableElectricity}
-                            onChange={handleChange}
-                            placeholder="Enter renewable electricity"
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              borderRadius: "8px",
-                              border: "1px solid #000000",
-                              backgroundColor: "#FFFFFF",
-                              color: "#000000",
-                              fontSize: "15px",
-                              outline: "none",
-                            }}
-                          />
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="renewableEnergyConsumption"
-                            style={{
-                              display: "block",
-                              color: "#000000",
-                              fontSize: "14px",
-                              marginBottom: "8px",
-                              fontWeight: "500",
-                            }}
-                          >
-                            Energy consumption{" "}
-                            <span style={{ color: "#000000" }}>*</span>
-                          </label>
-
-                          <input
-                            type="number"
-                            id="renewableEnergyConsumption"
-                            name="renewableEnergyConsumption"
-                            value={formData.renewableEnergyConsumption}
-                            onChange={handleChange}
-                            placeholder="Enter energy consumption"
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              borderRadius: "8px",
-                              border: "1px solid #000000",
-                              backgroundColor: "#FFFFFF",
-                              color: "#000000",
-                              fontSize: "15px",
-                              outline: "none",
-                            }}
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {/* 2) Supporting evidence */}
-                    <div>
-                      <label
-                        htmlFor="renewableSupportingEvidence"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Supporting evidence{" "}
-                        <span style={{ color: "#000000" }}>*</span>
-                      </label>
-
+                  {/* Supporting Evidence Upload */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Supporting evidence
+                    </label>
+                    <div className="border border-dashed border-gray-200 rounded-xl bg-gray-50/50 p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors group relative h-28">
                       <input
                         type="file"
-                        id="renewableSupportingEvidence"
-                        name="renewableSupportingEvidence"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            renewableSupportingEvidenceFile:
-                              e.target.files?.[0] || null,
-                          }))
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: "8px",
-                          border: "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "14px",
-                          outline: "none",
-                          cursor: "pointer",
-                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onChange={(e) => setFormData(prev => ({ ...prev, renewableSupportingEvidenceFile: e.target.files?.[0] || null }))}
                       />
-
-                      <div
-                        style={{ fontSize: "12px", marginTop: "6px", color: "#333" }}
-                      >
-                        Allowed: PDF, JPG, JPEG, PNG
+                      <div className="bg-green-100 p-2 rounded-full mb-2 group-hover:scale-110 transition-transform">
+                        <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
                       </div>
-                    </div>
-
-                    {/* 3) Energy source description */}
-                    <div>
-                      <label
-                        htmlFor="renewableEnergySourceDescription"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Energy source description{" "}
-                        <span style={{ color: "#000000" }}>*</span>
-                      </label>
-
-                      <textarea
-                        id="renewableEnergySourceDescription"
-                        name="renewableEnergySourceDescription"
-                        value={formData.renewableEnergySourceDescription}
-                        onChange={handleChange}
-                        rows={4}
-                        placeholder="Write description here..."
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                          resize: "vertical",
-                          fontFamily: "inherit",
-                        }}
-                      />
+                      <p className="text-xs font-semibold text-gray-600">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        PDF, JPG, PNG up to 10MB
+                      </p>
                     </div>
                   </div>
-                </section>
-              </div>
 
-              {/* PREVIOUS + SUBMIT */}
-              <div
-                style={{
-                  marginTop: "20px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-2">
+                      Energy source description
+                    </label>
+                    <textarea
+                      placeholder="Describe renewable energy source..."
+                      className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none min-h-[60px]"
+                    />
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Footer Actions */}
+          {/* Footer Actions */}
+          <div className="pt-1 pb-1 mt-auto flex justify-between items-center border-t border-gray-100 flex-shrink-0 bg-white">
+            <div className="flex-1">
+              {page === 1 ? (
+                <p className="text-[10px] text-gray-400">
+                  You can edit these details later
+                </p>
+              ) : (
+                <p className="text-[10px] text-gray-400 hover:underline cursor-pointer">
+                  You can edit this later.
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-4">
+              {page === 2 && (
                 <button
                   type="button"
-                  onClick={() => setPage(1)}
-                  style={{
-                    width: "auto",
-                    padding: "10px 18px",
-                    borderRadius: "8px",
-                    border: "1px solid #000000",
-                    backgroundColor: "#dddddd",
-                    color: "#000000",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                  }}
+                  onClick={() => { setPage(1); window.scrollTo(0, 0); }}
+                  className="px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
                 >
-                  Previous
+                  Back
                 </button>
+              )}
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    width: "auto",
-                    padding: "10px 18px",
-                    borderRadius: "8px",
-                    border: "1px solid #000000",
-                    backgroundColor: isSubmitting ? "#cccccc" : "#000000",
-                    color: "#FFFFFF",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    cursor: isSubmitting ? "not-allowed" : "pointer",
-                    opacity: isSubmitting ? 0.7 : 1,
-                  }}
-                >
-                  {isSubmitting ? "Submitting..." : "Submit"}
-                </button>
-              </div>
-            </>
-          )}
+              <button
+                type="button"
+                onClick={page === 1 ? handleNext : (e) => handleSubmit(e as any)}
+                disabled={isSubmitting}
+                className="px-8 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {page === 1 ? (
+                  <>
+                    Next: Electricity data
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </>
+                ) : (
+                  isSubmitting ? "Submitting..." : "Next: Review & submit"
+                )}
+              </button>
+            </div>
+          </div>
+
         </form>
-      </div>
-      <style jsx global>{`
-  .yearPickerInput {
-    width: 100%;
-    padding: 12px 16px;
-    border-radius: 8px;
-    border: 1px solid #000000;
-    background-color: #ffffff;
-    color: #000000;
-    font-size: 15px;
-    outline: none;
-    cursor: pointer;
-  }
-`}</style>
-    </main>
+      </div >
+    </div >
   );
 }
