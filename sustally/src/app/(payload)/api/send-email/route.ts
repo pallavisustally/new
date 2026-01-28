@@ -34,19 +34,19 @@ export const POST = async (request: Request) => {
       throw new APIError('Email address is required', 400)
     }
 
-    // Extract review details from request
-    const renewableEnergyStr = data.renewableEnergy || '0';
-    const totalEnergyStr = data.totalEnergy || '0';
-    
-    // Extract numeric values (remove units like "kWh" if present)
-    const renewableEnergy = parseFloat(String(renewableEnergyStr).replace(/[^\d.]/g, '')) || 0;
-    const totalEnergy = parseFloat(String(totalEnergyStr).replace(/[^\d.]/g, '')) || 0;
-    
-    // Calculate renewable energy percentage: (Renewable Energy / Total Energy) × 100
-    const renewablePercentage = totalEnergy > 0 
-      ? ((renewableEnergy / totalEnergy) * 100).toFixed(2)
-      : '0.00';
-    
+    // // Extract review details from request
+    // const renewableEnergyStr = data.renewableEnergy || '0';
+    // const totalEnergyStr = data.totalEnergy || '0';
+
+    // // Extract numeric values (remove units like "kWh" if present)
+    // const renewableEnergy = parseFloat(String(renewableEnergyStr).replace(/[^\d.]/g, '')) || 0;
+    // const totalEnergy = parseFloat(String(totalEnergyStr).replace(/[^\d.]/g, '')) || 0;
+
+    // // Calculate renewable energy percentage: (Renewable Energy / Total Energy) × 100
+    // const renewablePercentage = totalEnergy > 0 
+    //   ? ((renewableEnergy / totalEnergy) * 100).toFixed(2)
+    //   : '0.00';
+
     const reviewDetails = {
       name: data.name || '-',
       mobile: data.mobile || '-',
@@ -60,9 +60,9 @@ export const POST = async (request: Request) => {
       assignmentTime: data.assignmentTime || "-",
 
       country: data.country || '-',
-      renewableEnergy: renewableEnergyStr || '-',
-      totalEnergy: totalEnergyStr || '-',
-      renewablePercentage: `${renewablePercentage}%`,
+      // renewableEnergy: renewableEnergyStr || '-',
+      // totalEnergy: totalEnergyStr || '-',
+      // renewablePercentage: `${renewablePercentage}%`,
     }
 
     // Create email HTML content with all review details
@@ -74,7 +74,7 @@ export const POST = async (request: Request) => {
             body {
               font-family: Arial, sans-serif;
               line-height: 1.6;
-              color: #f5eaea;
+              color: #0b0909;
             }
             .container {
               max-width: 600px;
@@ -101,7 +101,7 @@ export const POST = async (request: Request) => {
             }
             .detail-label {
               font-weight: 600;
-              color: #f3efef;
+              color: #050505;
             }
             .detail-value {
               color: #333;
@@ -120,7 +120,7 @@ export const POST = async (request: Request) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>Review Details</h1>
+              <h1>Slot Booking Details</h1>
             </div>
             <div class="content">
               <h2>Application Information</h2>
@@ -152,7 +152,7 @@ export const POST = async (request: Request) => {
                 <span class="detail-label">Country:</span>
                 <span class="detail-value">${reviewDetails.country}</span>
               </div>
-              <h2>Scope 2 Assignment</h2>
+              
 
               <div class="detail-row">
               <span class="detail-label">Assignment Date:</span>
@@ -167,18 +167,7 @@ export const POST = async (request: Request) => {
                 <span class="detail-value">${reviewDetails.assignmentTime}</span>
               </div>
 
-              <div class="detail-row">
-                <span class="detail-label">Renewable Energy:</span>
-                <span class="detail-value">${reviewDetails.renewableEnergy}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Total Energy:</span>
-                <span class="detail-value">${reviewDetails.totalEnergy}</span>
-              </div>
-              <div class="detail-row" style="border-bottom: none;">
-                <span class="detail-label">Renewable Energy Percentage:</span>
-                <span class="detail-value">${reviewDetails.renewablePercentage}</span>
-              </div>
+              
             </div>
             <div class="footer">
               <p>This email was sent from Sustally Application System</p>
@@ -204,9 +193,7 @@ Country: ${reviewDetails.country}
 
 
 
-Renewable Energy: ${reviewDetails.renewableEnergy}
-Total Energy: ${reviewDetails.totalEnergy}
-Renewable Energy Percentage: ${reviewDetails.renewablePercentage}
+
 
 Scope 2 Assignment:
 
@@ -255,7 +242,7 @@ This email was sent from Sustally Application System
     }, { headers })
   } catch (error) {
     console.error('Error sending email:', error)
-    
+
     // Get origin for CORS
     const origin = request.headers.get('origin')
     // Get allowed origins from environment variable or use defaults
@@ -273,7 +260,7 @@ This email was sent from Sustally Application System
     }
     errorHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
     errorHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    
+
     if (error instanceof APIError) {
       return Response.json(
         { success: false, error: error.message },
@@ -285,7 +272,7 @@ This email was sent from Sustally Application System
     let errorMessage = 'Failed to send email'
     if (error instanceof Error) {
       errorMessage = error.message || errorMessage
-      
+
       // Provide user-friendly error messages for common SMTP errors
       if (error.message.includes('EAUTH') || error.message.includes('BadCredentials')) {
         errorMessage = 'SMTP authentication failed. Please check your SMTP_USER and SMTP_PASS credentials. For Gmail, use an App Password instead of your regular password.'

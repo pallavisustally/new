@@ -166,7 +166,7 @@ export default function ScopeReviewPage() {
     },
   ];
 
-  // PDF generation removed - now goes directly to certificate page
+  
 
   return (
     <main

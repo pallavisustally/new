@@ -70,6 +70,7 @@ export interface Config {
     users: User;
     media: Media;
     applications: Application;
+    'scope2-applications': Scope2Application;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -80,6 +81,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     applications: ApplicationsSelect<false> | ApplicationsSelect<true>;
+    'scope2-applications': Scope2ApplicationsSelect<false> | Scope2ApplicationsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -179,6 +181,35 @@ export interface Application {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scope2-applications".
+ */
+export interface Scope2Application {
+  id: string;
+  state: string;
+  siteCount: string;
+  facilityName: string;
+  renewableProcurement: 'Yes' | 'No';
+  onsiteExportedKwh: string;
+  netMeteringApplicable: 'Yes' | 'No';
+  reportingYear: string;
+  reportingPeriod: 'Monthly' | 'Quarterly' | 'Annually';
+  conditionalApproach: 'Operational Control' | 'Equity Share' | 'Financial Control';
+  scopeBoundaryNotes: string;
+  energyActivityInput: 'Monthly' | 'Yearly';
+  energyCategory: string;
+  trackingType: 'Unit consumption' | 'Spend amount' | 'Both';
+  energySupportingEvidenceFile?: string | null;
+  energySourceDescription: string;
+  hasRenewableElectricity: 'Yes' | 'No';
+  renewableElectricity?: string | null;
+  renewableEnergyConsumption?: string | null;
+  renewableSupportingEvidenceFile?: string | null;
+  renewableEnergySourceDescription: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -212,6 +243,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'applications';
         value: string | Application;
+      } | null)
+    | ({
+        relationTo: 'scope2-applications';
+        value: string | Scope2Application;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -307,6 +342,34 @@ export interface ApplicationsSelect<T extends boolean = true> {
   sector?: T;
   natureOfBusiness?: T;
   country?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scope2-applications_select".
+ */
+export interface Scope2ApplicationsSelect<T extends boolean = true> {
+  state?: T;
+  siteCount?: T;
+  facilityName?: T;
+  renewableProcurement?: T;
+  onsiteExportedKwh?: T;
+  netMeteringApplicable?: T;
+  reportingYear?: T;
+  reportingPeriod?: T;
+  conditionalApproach?: T;
+  scopeBoundaryNotes?: T;
+  energyActivityInput?: T;
+  energyCategory?: T;
+  trackingType?: T;
+  energySupportingEvidenceFile?: T;
+  energySourceDescription?: T;
+  hasRenewableElectricity?: T;
+  renewableElectricity?: T;
+  renewableEnergyConsumption?: T;
+  renewableSupportingEvidenceFile?: T;
+  renewableEnergySourceDescription?: T;
   updatedAt?: T;
   createdAt?: T;
 }

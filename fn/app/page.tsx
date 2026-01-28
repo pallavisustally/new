@@ -3,1016 +3,571 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+// Icons as components to avoid external dependencies
+const UserIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="w-12 h-12 text-indigo-100"
+  >
+    <circle cx="12" cy="8" r="4" />
+    <path d="M12 14c-5 0-8 3-8 6v1h16v-1c0-3-3-6-8-6z" />
+  </svg>
+);
+
+const BuildingIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="w-12 h-12 text-blue-100"
+  >
+    <path d="M3 21h18v-8H3v8zm6-6h2v4H9v-4zm4 0h2v4h-2v-4zM3 3v10h18V3H3zm6 6H7V5h2v4zm4 0h-2V5h2v4zm4 0h-2V5h2v4z" />
+  </svg>
+);
+
+const LocationIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-6 h-6 text-purple-500"
+  >
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+// Form Data Type
 type FormDataType = {
+  // About You
   name: string;
   mobile: string;
   email: string;
+
+  // About Business
   company: string;
   sector: string;
+  subSector: string; // e.g. "FMCG"
   natureOfBusiness: string;
-  country: string;
-  renewableEnergy: string;
-  totalEnergy: string;
 
-  // Added for Page 2
-  assignmentDate: string;
-  assignmentSlot: string;
-  assignmentTime: string;
+  // Operating Footprint
+  siteCount: "Single site" | "Multiple sites";
+  siteCountNumber?: string;
+  country: "India" | "Other";
+  otherCountryName?: string;
+  legalEntityId: string;
 };
 
 export default function HomePage() {
   const router = useRouter();
-
-  const [page, setPage] = useState(1);
 
   const [formData, setFormData] = useState<FormDataType>({
     name: "",
     mobile: "",
     email: "",
     company: "",
-    sector: "",
+    sector: "Manufacturing", // Default selection
+    subSector: "FMCG", // Default selection
     natureOfBusiness: "",
-    country: "",
-    renewableEnergy: "",
-    totalEnergy: "",
-
-    assignmentDate: "",
-    assignmentSlot: "",
-    assignmentTime: "",
+    siteCount: "Single site",
+    siteCountNumber: "",
+    country: "India",
+    otherCountryName: "",
+    legalEntityId: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCustomSubSector, setIsCustomSubSector] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({ ...prev, [name]: value }));
-
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
-  const validateStep = (step: number) => {
+  const handleSectorChange = (sector: string) => {
+    setFormData((prev) => ({ ...prev, sector }));
+    // Reset sub-sector when sector changes if needed, 
+    // but sticking to existing behavior for now, maybe just reset custom toggle?
+    setIsCustomSubSector(false);
+  };
+
+  const handleSubSectorChange = (subSector: string) => {
+    setFormData((prev) => ({ ...prev, subSector }));
+  };
+
+  const validate = () => {
     const newErrors: Record<string, string> = {};
-
-    if (step === 1) {
-      if (!formData.name.trim()) newErrors.name = "Name is required";
-      if (!formData.mobile.trim()) newErrors.mobile = "Mobile is required";
-
-      if (!formData.email.trim()) {
-        newErrors.email = "Email is required";
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = "Please enter a valid email address";
-      }
-    } else if (step === 2) {
-      if (!formData.company.trim()) newErrors.company = "Company is required";
-      if (!formData.sector.trim()) newErrors.sector = "Sector is required";
-      if (!formData.natureOfBusiness.trim())
-        newErrors.natureOfBusiness = "Nature of Business is required";
-    } else if (step === 3) {
-      if (!formData.country.trim()) newErrors.country = "Country is required";
-    } else if (step === 4) {
-      if (!formData.renewableEnergy.trim()) {
-        newErrors.renewableEnergy = "Renewable Energy is required";
-      } else if (isNaN(parseFloat(formData.renewableEnergy))) {
-        newErrors.renewableEnergy = "Please enter a valid number";
-      }
-
-      if (!formData.totalEnergy.trim()) {
-        newErrors.totalEnergy = "Total Energy is required";
-      } else if (isNaN(parseFloat(formData.totalEnergy))) {
-        newErrors.totalEnergy = "Please enter a valid number";
-      }
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!formData.mobile.trim()) newErrors.mobile = "Mobile number is required";
+    if (!formData.email.trim()) newErrors.email = "Email ID is required";
+    if (!formData.company.trim()) newErrors.company = "Company name is required";
+    if (formData.siteCount === "Multiple sites" && !formData.siteCountNumber?.trim()) {
+      newErrors.siteCountNumber = "Site count is required";
+    }
+    if (formData.country === "Other" && !formData.otherCountryName?.trim()) {
+      newErrors.otherCountryName = "Country name is required";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const validate = () => {
-    for (let step = 1; step <= 4; step++) {
-      if (!validateStep(step)) return false;
-    }
-
-    // Validate Page 2 selection
-    if (!formData.assignmentDate) {
-      setErrors((prev) => ({
-        ...prev,
-        assignmentDate: "Please select assignment date",
-      }));
-      return false;
-    }
-    if (!formData.assignmentSlot) {
-      setErrors((prev) => ({
-        ...prev,
-        assignmentSlot: "Please select assignment slot",
-      }));
-      return false;
-    }
-    if (!formData.assignmentTime) {
-      setErrors((prev) => ({
-        ...prev,
-        assignmentTime: "Please select assignment time",
-      }));
-      return false;
-    }
-
-    return true;
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validate()) return;
-
-    setIsSubmitting(true);
-
-    const params = new URLSearchParams();
-    Object.entries(formData).forEach(([key, value]) => {
-      params.append(key, value);
-    });
-
-    router.push(`/review?${params.toString()}`);
+    if (validate()) {
+      // Proceed to next step
+      console.log("Form Submitted", formData);
+      const params = new URLSearchParams();
+      // Add existing form data to search params
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      router.push(`/choose-time?${params.toString()}`);
+    }
   };
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f3f2f2ff",
-        padding: "40px 20px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "1500px",
-          border: "2px solid #faf9f8ff",
-          borderRadius: "12px",
-          padding: "40px",
-          backgroundColor: "#f8f7f7ff",
-          boxShadow: "0 8px 32px rgba(255, 107, 53, 0.2)",
-        }}
-      >
-        <h1
-          style={{
-            color: "#080707ff",
-            marginBottom: "8px",
-            fontSize: "32px",
-            fontWeight: "600",
-            textAlign: "center",
-          }}
-        >
-          {page === 1 ? "Application Form" : "Scope 2 Assignment"}
-        </h1>
+    <div className="h-screen w-screen overflow-hidden bg-gray-50 text-gray-800 font-sans selection:bg-indigo-100 p-2 md:p-4 flex flex-col">
+      <div className="w-full h-full max-w-7xl mx-auto flex flex-col">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-2 flex-shrink-0 gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                Scope 2 Assessment
+              </span>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">
+              Book your Scope 2 self-assessment
+            </h1>
+            <p className="text-gray-500 mt-1 text-xs">
+              Share a few basic details. Takes about 2 minutes.
+            </p>
+          </div>
 
-        <p
-          style={{
-            color: "#050404ff",
-            marginBottom: "24px",
-            textAlign: "center",
-            fontSize: "15px",
-          }}
-        >
-          {page === 1
-            ? "Please fill in all the required information below"
-            : "Choose your preferred date and time"}
-        </p>
+          {/* Centered Preliminary Step */}
+          <div className="flex flex-col items-center justify-center">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
+              Preliminary Step of 6 - Context Setup
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="h-1 w-32 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-1500 w-[17%]"></div>
+              </div>
+              <span className="text-sm font-bold text-gray-400">17%</span>
+            </div>
+          </div>
 
-        <form onSubmit={handleSubmit}>
-          {/* ===================== PAGE 1 ===================== */}
-          {page === 1 && (
-            <>
-              {/* 2x2 Grid Layout */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "20px",
-                  width: "100%",
-                  backgroundColor: "#FFFFFF",
-                  color: "#000000",
-                }}
-              >
-                {/* ================= STEP 1 ================= */}
-                <section
-                  style={{
-                    border: "1px solid #000000",
-                    borderRadius: "12px",
-                    padding: "20px",
-                    backgroundColor: "#FFFFFF",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                >
-                  <h2
-                    style={{
-                      color: "#000000",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      marginBottom: "16px",
-                      borderBottom: "1px solid #000000",
-                      paddingBottom: "8px",
-                    }}
-                  >
-                    1. Personal Details
-                  </h2>
+          <div className="mt-1 md:mt-0 flex flex-col items-end">
+            {/* Logo placeholder */}
+            <div className="flex items-center gap-3 opacity-90">
+              <img
+                src="/sustally-logo.png"
+                alt="sustally"
+                className="h-10 w-auto object-contain"
+              />
+              <div className="flex gap-1 h-12">
+                <div className="w-[1px] bg-gray-300 h-full"></div>
+                <div className="w-[1px] bg-gray-300 h-full"></div>
+              </div>
+              <span className="font-medium text-gray-400 text-sm max-w-[200px] leading-tight text-left">
+                choose sustally as your sustainability ally
+              </span>
+            </div>
+          </div>
+        </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "20px",
-                    }}
-                  >
-                    {/* Name */}
-                    <div>
-                      <label
-                        htmlFor="name"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Name <span style={{ color: "#000000" }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.name
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                          transition: "border-color 0.2s",
-                        }}
-                      />
-                      {errors.name && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.name}
-                        </p>
-                      )}
-                    </div>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-3 min-h-0">
+          {/* Main Grid: About You, Business, Info */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 flex-1 min-h-0">
 
-                    {/* Mobile */}
-                    <div>
-                      <label
-                        htmlFor="mobile"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Mobile <span style={{ color: "#000000" }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="mobile"
-                        name="mobile"
-                        value={formData.mobile}
-                        onChange={handleChange}
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.mobile
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                        }}
-                      />
-                      {errors.mobile && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.mobile}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                      <label
-                        htmlFor="email"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Email <span style={{ color: "#000000" }}>*</span>
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.email
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                        }}
-                      />
-                      {errors.email && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.email}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
-
-                {/* ================= STEP 2 ================= */}
-                <section
-                  style={{
-                    border: "1px solid #000000",
-                    borderRadius: "12px",
-                    padding: "20px",
-                    backgroundColor: "#FFFFFF",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                >
-                  <h2
-                    style={{
-                      color: "#000000",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      marginBottom: "16px",
-                      borderBottom: "1px solid #000000",
-                      paddingBottom: "8px",
-                    }}
-                  >
-                    2. Company Details
-                  </h2>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "20px",
-                    }}
-                  >
-                    <div>
-                      <label
-                        htmlFor="company"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Company <span style={{ color: "#000000" }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="company"
-                        name="company"
-                        value={formData.company}
-                        onChange={handleChange}
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.company
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                        }}
-                      />
-                      {errors.company && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.company}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="sector"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Sector <span style={{ color: "#000000" }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="sector"
-                        name="sector"
-                        value={formData.sector}
-                        onChange={handleChange}
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.sector
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                        }}
-                      />
-                      {errors.sector && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.sector}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="natureOfBusiness"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Nature of Business{" "}
-                        <span style={{ color: "#000000" }}>*</span>
-                      </label>
-                      <textarea
-                        id="natureOfBusiness"
-                        name="natureOfBusiness"
-                        value={formData.natureOfBusiness}
-                        onChange={handleChange}
-                        rows={3}
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.natureOfBusiness
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                          resize: "vertical",
-                          fontFamily: "inherit",
-                        }}
-                      />
-                      {errors.natureOfBusiness && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.natureOfBusiness}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
-
-                {/* ================= STEP 3 ================= */}
-                <section
-                  style={{
-                    border: "1px solid #000000",
-                    borderRadius: "12px",
-                    padding: "20px",
-                    backgroundColor: "#FFFFFF",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                >
-                  <h2
-                    style={{
-                      color: "#000000",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      marginBottom: "16px",
-                      borderBottom: "1px solid #000000",
-                      paddingBottom: "8px",
-                    }}
-                  >
-                    3. Country
-                  </h2>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "20px",
-                    }}
-                  >
-                    <div>
-                      <label
-                        htmlFor="country"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Country <span style={{ color: "#000000" }}>*</span>
-                      </label>
-
-                      <input
-                        type="text"
-                        id="country"
-                        name="country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.country
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                        }}
-                      />
-
-                      {errors.country && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.country}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
-
-                {/* ================= STEP 4 ================= */}
-                <section
-                  style={{
-                    border: "1px solid #000000",
-                    borderRadius: "12px",
-                    padding: "20px",
-                    backgroundColor: "#FFFFFF",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                >
-                  <h2
-                    style={{
-                      color: "#000000",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      marginBottom: "16px",
-                      borderBottom: "1px solid #000000",
-                      paddingBottom: "8px",
-                    }}
-                  >
-                    4. Energy
-                  </h2>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "20px",
-                    }}
-                  >
-                    <div>
-                      <label
-                        htmlFor="renewableEnergy"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Renewable Energy (kWh){" "}
-                        <span style={{ color: "#000000" }}>*</span>
-                      </label>
-
-                      <input
-                        type="text"
-                        id="renewableEnergy"
-                        name="renewableEnergy"
-                        value={formData.renewableEnergy}
-                        onChange={handleChange}
-                        placeholder="e.g., 1000"
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.renewableEnergy
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                        }}
-                      />
-
-                      {errors.renewableEnergy && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.renewableEnergy}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="totalEnergy"
-                        style={{
-                          display: "block",
-                          color: "#000000",
-                          fontSize: "14px",
-                          marginBottom: "8px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        Total Energy (kWh){" "}
-                        <span style={{ color: "#000000" }}>*</span>
-                      </label>
-
-                      <input
-                        type="text"
-                        id="totalEnergy"
-                        name="totalEnergy"
-                        value={formData.totalEnergy}
-                        onChange={handleChange}
-                        placeholder="e.g., 5000"
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: errors.totalEnergy
-                            ? "2px solid #ff4444"
-                            : "1px solid #000000",
-                          backgroundColor: "#FFFFFF",
-                          color: "#000000",
-                          fontSize: "15px",
-                          outline: "none",
-                        }}
-                      />
-
-                      {errors.totalEnergy && (
-                        <p
-                          style={{
-                            color: "#ff4444",
-                            fontSize: "12px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {errors.totalEnergy}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
+            {/* Column 1: About You (Span 4) */}
+            <div className="lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                  <div className="w-4 h-4 rounded-full bg-indigo-500"></div>
+                </div>
+                <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider pt-1">About you</h2>
               </div>
 
-              {/* NEXT button */}
-              <div
-                style={{
-                  marginTop: "20px",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Validate steps before moving to page 2
-                    const ok =
-                      validateStep(1) &&
-                      validateStep(2) &&
-                      validateStep(3) &&
-                      validateStep(4);
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                    Your name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-1.5 text-xs bg-gray-50 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${errors.name ? "border-red-300 bg-red-50" : "border-gray-200"
+                      }`}
+                  />
+                  {errors.name && <p className="text-red-500 text-[10px] mt-0.5">{errors.name}</p>}
+                </div>
 
-                    if (ok) setPage(2);
-                  }}
-                  style={{
-                    width: "auto",
-                    padding: "10px 18px",
-                    borderRadius: "8px",
-                    border: "1px solid #FFFFFF",
-                    backgroundColor: "#494749ff",
-                    color: "#FFFFFF",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    opacity: isSubmitting ? 0.7 : 1,
-                    transition: "all 0.2s",
-                  }}
-                >
-                  Next
-                </button>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                    Mobile number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    placeholder="10-digit mobile number"
+                    className={`w-full px-3 py-1.5 text-xs bg-gray-50 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${errors.mobile ? "border-red-300 bg-red-50" : "border-gray-200"
+                      }`}
+                  />
+                  {errors.mobile && <p className="text-red-500 text-[10px] mt-0.5">{errors.mobile}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                    Email ID <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Used to share your assessment summary"
+                    className={`w-full px-3 py-1.5 text-xs bg-gray-50 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${errors.email ? "border-red-300 bg-red-50" : "border-gray-200"
+                      }`}
+                  />
+                  {errors.email && <p className="text-red-500 text-[10px] mt-0.5">{errors.email}</p>}
+                </div>
               </div>
-            </>
-          )}
+            </div>
 
-          {/* ===================== PAGE 2 ===================== */}
-          {page === 2 && (
-            <>
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                {/* DATE BOXES */}
-                <div style={{ display: "flex", gap: "12px" }}>
-                  {Array.from({ length: 2 }).map((_, i) => {
-                    const date = new Date();
-                    date.setDate(date.getDate() + i);
+            {/* Column 2: About Your Business (Span 5) */}
+            <div className="lg:col-span-5 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider pt-1">About your business</h2>
+              </div>
 
-                    const value = date.toLocaleDateString("en-CA"); // YYYY-MM-DD
-                    const label = date.toDateString();
-
-                    const isSelected = formData.assignmentDate === value;
-
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            assignmentDate: value,
-                            assignmentSlot: "",
-                            assignmentTime: "",
-                          }))
-                        }
-                        style={{
-                          flex: 1,
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: "1px solid #000000",
-                          background: isSelected ? "#000" : "#fff",
-                          color: isSelected ? "#fff" : "#000",
-                          cursor: "pointer",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                    Company name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-1.5 text-xs bg-gray-50 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all ${errors.company ? "border-red-300 bg-red-50" : "border-gray-200"
+                      }`}
+                  />
+                  {errors.company && <p className="text-red-500 text-[10px] mt-0.5">{errors.company}</p>}
                 </div>
 
-                {/* TIME OF DAY BOXES */}
-                <div style={{ display: "flex", gap: "12px" }}>
-                  {[
-                    { label: "Morning", start: "09:00", end: "12:00" },
-                    { label: "Afternoon", start: "12:00", end: "17:00" },
-                    { label: "Evening", start: "17:00", end: "20:00" },
-                  ].map((slot) => {
-                    const isSelected = formData.assignmentSlot === slot.label;
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Sector <span className="text-red-500">*</span>
+                  </label>
 
-                    return (
+                  {/* Sector Caps */}
+                  <div className="flex gap-2 mb-3">
+                    {["Manufacturing", "Services", "Trading"].map(s => (
                       <button
-                        key={slot.label}
+                        key={s}
                         type="button"
-                        disabled={!formData.assignmentDate}
-                        onClick={() =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            assignmentSlot: slot.label,
-                            assignmentTime: "",
-                          }))
-                        }
-                        style={{
-                          flex: 1,
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: "1px solid #000000",
-                          background: isSelected ? "#000" : "#fff",
-                          color: isSelected ? "#fff" : "#000",
-                          cursor: formData.assignmentDate ? "pointer" : "not-allowed",
-                          opacity: formData.assignmentDate ? 1 : 0.5,
-                          fontWeight: 600,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
+                        onClick={() => handleSectorChange(s)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${formData.sector === s
+                          ? "bg-white border-blue-200 text-blue-700 shadow-sm"
+                          : "bg-gray-50 border-transparent text-gray-500 hover:bg-gray-100"
+                          }`}
                       >
-                        <span>{slot.label}</span>
-                        <span style={{ fontSize: "13px", fontWeight: 500 }}>
-                          {slot.start} - {slot.end}
-                        </span>
+                        {/* <span className="mr-1">🏭</span> */}
+                        {s}
                       </button>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
 
-                {/* EXACT TIME BOXES */}
-                {formData.assignmentSlot && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <div style={{ fontWeight: 700 }}>Select Time</div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(4, 1fr)",
-                        gap: "10px",
-                      }}
-                    >
-                      {(() => {
-                        const generateTimes = (start: string, end: string) => {
-                          const times: string[] = [];
-
-                          const [sh, sm] = start.split(":").map(Number);
-                          const [eh, em] = end.split(":").map(Number);
-
-                          const current = new Date();
-                          current.setHours(sh, sm, 0, 0);
-
-                          const last = new Date();
-                          last.setHours(eh, em, 0, 0);
-
-                          while (current <= last) {
-                            const h = String(current.getHours()).padStart(2, "0");
-                            const m = String(current.getMinutes()).padStart(2, "0");
-                            times.push(`${h}:${m}`);
-                            current.setMinutes(current.getMinutes() + 30);
-                          }
-
-                          return times;
-                        };
-
-                        let start = "09:00";
-                        let end = "12:00";
-
-                        if (formData.assignmentSlot === "Afternoon") {
-                          start = "12:00";
-                          end = "17:00";
-                        } else if (formData.assignmentSlot === "Evening") {
-                          start = "17:00";
-                          end = "20:00";
-                        }
-
-                        const times = generateTimes(start, end);
-
-                        return times.map((t) => {
-                          const isSelected = formData.assignmentTime === t;
-
-                          return (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  assignmentTime: t,
-                                }))
-                              }
-                              style={{
-                                padding: "10px",
-                                borderRadius: "8px",
-                                border: "1px solid #000000",
-                                background: isSelected ? "#000" : "#fff",
-                                color: isSelected ? "#fff" : "#000",
-                                cursor: "pointer",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {t}
-                            </button>
-                          );
-                        });
-                      })()}
+                  {/* Sub Sector Pills */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      {["FMCG", "Auto / Engineering"].map(sub => (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => {
+                            handleSubSectorChange(sub);
+                            setIsCustomSubSector(false);
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${!isCustomSubSector && formData.subSector === sub
+                            ? "bg-purple-500 border-purple-500 text-white"
+                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                        >
+                          {/* <span className="mr-1">🏭</span> */}
+                          {sub}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomSubSector(true);
+                          setFormData(prev => ({ ...prev, subSector: "" }));
+                        }}
+                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${isCustomSubSector
+                          ? "bg-purple-500 text-white"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          }`}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
                     </div>
+                    {isCustomSubSector && (
+                      <div className="animate-in fade-in slide-in-from-top-1">
+                        <input
+                          type="text"
+                          value={formData.subSector}
+                          onChange={(e) => handleSubSectorChange(e.target.value)}
+                          placeholder="Enter sub-sector"
+                          autoFocus
+                          className="w-full px-3 py-1.5 text-xs bg-gray-50 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all border-gray-200"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                    Nature of business activity
+                  </label>
+                  <input
+                    type="text"
+                    name="natureOfBusiness"
+                    value={formData.natureOfBusiness}
+                    onChange={handleChange}
+                    placeholder="e.g., packaged snacks, CNC machining"
+                    className="w-full px-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  />
+                  {/* <textarea
+                    name="natureOfBusiness"
+                    value={formData.natureOfBusiness}
+                    onChange={handleChange}
+                    rows={2}
+                    placeholder="e.g., packaged snacks, CNC machining"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                  /> */}
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3: What you'll get (Span 3) */}
+            <div className="lg:col-span-3 flex flex-col justify-center">
+              <h3 className="text-base font-bold text-gray-400 mb-2 bg-gradient-to-r from-purple-500 to-indigo-500 bg-clip-text text-transparent opacity-80">
+                What you'll get
+              </h3>
+
+              <div className="space-y-4">
+                <div className="bg-white p-3 rounded-xl border border-blue-50 shadow-sm flex gap-3">
+                  <div className="mt-1 bg-blue-50 p-2 rounded-lg h-fit text-blue-600">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-700 text-sm">Scope 2 estimate</h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Initial <span className="text-blue-500 underline decoration-dotted cursor-help">carbon footprint</span> calculation for your operations
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-purple-50 shadow-sm flex gap-3">
+                  <div className="mt-1 bg-purple-50 p-2 rounded-lg h-fit text-purple-600">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Key insights</h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Actionable <span className="text-blue-500 underline decoration-dotted cursor-help">recommendations</span> for your business
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-gray-50 shadow-sm flex gap-3">
+                  <div className="mt-1 bg-gray-50 p-2 rounded-lg h-fit text-gray-600">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Next steps</h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Clear roadmap for emission reduction
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Operating Footprint Section */}
+          <div className="bg-white rounded-2xl p-10 shadow-sm border border-gray-100 relative flex-shrink-0">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0">
+                <LocationIcon />
+              </div>
+              <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider pt-1">Operating Footprint</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+              {/* Sites Toggle */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-2">
+                  How many sites do you have?
+                </label>
+                <div className="flex bg-gray-100 p-1 rounded-lg w-full max-w-sm">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, siteCount: "Single site" }))}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${formData.siteCount === "Single site"
+                      ? "bg-purple-500 text-white shadow-md"
+                      : "text-gray-500 hover:text-gray-900"
+                      }`}
+                  >
+                    <span className="mr-2">•</span> Single site
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, siteCount: "Multiple sites" }))}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${formData.siteCount === "Multiple sites"
+                      ? "bg-purple-500 text-white shadow-sm border border-gray-200"
+                      : "text-gray-500 hover:text-gray-900"
+                      }`}
+                  >
+                    <span className="mr-2 text-gray-400">•••</span> Multiple sites
+                  </button>
+                </div>
+                {formData.siteCount === "Multiple sites" && (
+                  <div className="mt-2 animate-in fade-in slide-in-from-top-1">
+                    <label className="block text-[10px] font-bold text-gray-500 mb-0.5">
+                      Number of sites <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="siteCountNumber"
+                      value={formData.siteCountNumber}
+                      onChange={handleChange}
+                      placeholder="Enter number of sites"
+                      min="2"
+                      className={`w-full px-3 py-1.5 text-xs bg-gray-50 border rounded-lg focus:ring-1 focus:ring-purple-500 outline-none transition-all ${errors.siteCountNumber ? "border-red-300 bg-red-50" : "border-gray-200"
+                        }`}
+                    />
+                    {errors.siteCountNumber && <p className="text-red-500 text-[10px] mt-0.5">{errors.siteCountNumber}</p>}
                   </div>
                 )}
               </div>
 
-              {/* PREVIOUS + SUBMIT */}
-              <div
-                style={{
-                  marginTop: "20px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setPage(1)}
-                  style={{
-                    width: "auto",
-                    padding: "10px 18px",
-                    borderRadius: "8px",
-                    border: "1px solid #000000",
-                    backgroundColor: "#dddddd",
-                    color: "#000000",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                  }}
-                >
-                  Previous
-                </button>
+              {/* Country and LEI */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 mb-1">
+                    Country
+                  </label>
+                  <div className="flex bg-gray-50 p-1 rounded-lg w-full border border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, country: "India" }))}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${formData.country === "India"
+                        ? "bg-purple-500 text-white"
+                        : "text-gray-500 hover:text-gray-900"
+                        }`}
+                    >
+                      • India
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, country: "Other" }))}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${formData.country === "Other"
+                        ? "bg-purple-500 text-white"
+                        : "text-gray-500 hover:text-gray-900"
+                        }`}
+                    >
+                      • Other
+                    </button>
+                  </div>
+                  {formData.country === "Other" && (
+                    <div className="mt-2 animate-in fade-in slide-in-from-top-1">
+                      <label className="block text-[10px] font-bold text-gray-500 mb-0.5">
+                        Country Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="otherCountryName"
+                        value={formData.otherCountryName}
+                        onChange={handleChange}
+                        placeholder="Enter country name"
+                        className={`w-full px-3 py-1.5 text-xs bg-gray-50 border rounded-lg focus:ring-1 focus:ring-purple-500 outline-none transition-all ${errors.otherCountryName ? "border-red-300 bg-red-50" : "border-gray-200"
+                          }`}
+                      />
+                      {errors.otherCountryName && <p className="text-red-500 text-[10px] mt-0.5">{errors.otherCountryName}</p>}
+                    </div>
+                  )}
+                </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    width: "auto",
-                    padding: "10px 18px",
-                    borderRadius: "8px",
-                    border: "1px solid #000000",
-                    backgroundColor: isSubmitting ? "#ccccccff" : "#000000",
-                    color: "#FFFFFF",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    cursor: isSubmitting ? "not-allowed" : "pointer",
-                    opacity: isSubmitting ? 0.7 : 1,
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {isSubmitting ? "Submitting..." : "Submit"}
-                </button>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 mb-0.5">
+                    Legal Entity ID (DIN etc.) <span className="text-gray-300 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="legalEntityId"
+                    value={formData.legalEntityId}
+                    onChange={handleChange}
+                    className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-gray-400 outline-none transition-all text-xs"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    If available — can be added later
+                  </p>
+                </div>
               </div>
-            </>
-          )}
-        </form>
-      </div>
-    </main>
+            </div>
+
+            {/* Action Bar inside the card bottom right */}
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+              <p className="text-[10px] text-gray-400">
+                You can review and edit these details later.
+              </p>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 bg-purple-500 hover:bg-purple-500 text-white px-6 py-2 rounded-xl font-bold transition-all transform hover:scale-105 text-sm"
+              >
+                Next: Choose time
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div >
+        </form >
+      </div >
+    </div >
   );
 }

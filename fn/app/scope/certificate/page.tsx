@@ -12,42 +12,12 @@ export default function ScopeCertificatePage() {
 
   const data = useMemo(() => {
     return {
-      // Page 1 - Box 1
       state: searchParams.get("state") || "-",
       siteCount: searchParams.get("siteCount") || "-",
-      facilityName: searchParams.get("facilityName") || "-",
-
-      // Page 1 - Box 2
-      renewableProcurement: searchParams.get("renewableProcurement") || "-",
-      onsiteExportedKwh: searchParams.get("onsiteExportedKwh") || "-",
-      netMeteringApplicable: searchParams.get("netMeteringApplicable") || "-",
-
-      // Page 1 - Box 3
+      facilityName: searchParams.get("facilityName") || "CHLOE ALLEN",
       reportingYear: searchParams.get("reportingYear") || "-",
       reportingPeriod: searchParams.get("reportingPeriod") || "-",
-      conditionalApproach: searchParams.get("conditionalApproach") || "-",
-
-      // Page 1 - Box 4
       scopeBoundaryNotes: searchParams.get("scopeBoundaryNotes") || "-",
-
-      // Page 2 - Box 1
-      energyActivityInput: searchParams.get("energyActivityInput") || "-",
-      energyCategory: searchParams.get("energyCategory") || "-",
-      trackingType: searchParams.get("trackingType") || "-",
-      energySupportingEvidenceFile:
-        searchParams.get("energySupportingEvidenceFile") || "-",
-      energySourceDescription: searchParams.get("energySourceDescription") || "-",
-
-      // Page 2 - Box 2
-      hasRenewableElectricity:
-        searchParams.get("hasRenewableElectricity") || "-",
-      renewableElectricity: searchParams.get("renewableElectricity") || "-",
-      renewableEnergyConsumption:
-        searchParams.get("renewableEnergyConsumption") || "-",
-      renewableSupportingEvidenceFile:
-        searchParams.get("renewableSupportingEvidenceFile") || "-",
-      renewableEnergySourceDescription:
-        searchParams.get("renewableEnergySourceDescription") || "-",
     };
   }, [searchParams]);
 
@@ -65,7 +35,9 @@ export default function ScopeCertificatePage() {
 
       const imgData = canvas.toDataURL("image/png", 1.0);
       const link = document.createElement("a");
-      link.download = `scope2-certificate-${data.facilityName || "application"}-${new Date().toISOString().split("T")[0]}.png`;
+      link.download = `scope2-certificate-${
+        data.facilityName || "application"
+      }-${new Date().toISOString().split("T")[0]}.png`;
       link.href = imgData;
       link.click();
     } catch (error) {
@@ -90,7 +62,7 @@ export default function ScopeCertificatePage() {
       <div
         style={{
           width: "100%",
-          maxWidth: "1600px",
+          maxWidth: "1200px",
           display: "flex",
           flexDirection: "column",
           gap: "24px",
@@ -101,408 +73,225 @@ export default function ScopeCertificatePage() {
           ref={certificateRef}
           style={{
             width: "100%",
-            aspectRatio: "16/9",
             backgroundColor: "#ffffff",
-            border: "4px solid #FF6B35",
             borderRadius: "12px",
-            padding: "60px 80px",
+            padding: "40px",
             boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
-            display: "flex",
-            flexDirection: "column",
-            position: "relative",
-            overflow: "hidden",
           }}
         >
-          {/* Decorative Border */}
+          {/* GREEN FRAME (like image) */}
           <div
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              border: "2px solid #FF6B35",
-              borderRadius: "8px",
-              pointerEvents: "none",
+              border: "14px solid #3D5F2B",
+              padding: "24px",
+              position: "relative",
+              backgroundColor: "#fff",
             }}
-          />
-
-          {/* Header */}
-          <div style={{ textAlign: "center", marginBottom: "40px" }}>
-            <h1
-              style={{
-                fontSize: "48px",
-                fontWeight: "700",
-                color: "#FF6B35",
-                marginBottom: "12px",
-                letterSpacing: "2px",
-              }}
-            >
-              SCOPE 2 CERTIFICATE
-            </h1>
+          >
+            {/* inner thin frame */}
             <div
               style={{
-                width: "200px",
-                height: "3px",
-                backgroundColor: "#FF6B35",
-                margin: "0 auto",
-              }}
-            />
-            <p
-              style={{
-                fontSize: "18px",
-                color: "#666",
-                marginTop: "12px",
-                fontWeight: "500",
+                border: "2px solid #3D5F2B",
+                padding: "40px 50px",
+                position: "relative",
               }}
             >
-              Application Review Details
-            </p>
-          </div>
-
-          {/* Content Grid - Landscape Layout */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "30px",
-              flex: 1,
-            }}
-          >
-            {/* Left Column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-              {/* Page 1 Section */}
-              <div>
-                <h2
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "700",
-                    color: "#000",
-                    marginBottom: "16px",
-                    borderBottom: "2px solid #FF6B35",
-                    paddingBottom: "8px",
-                  }}
-                >
-                  Page 1 - Reporting Information
-                </h2>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      State:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.state}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Site Count:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.siteCount}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Facility Name:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.facilityName}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Renewable Procurement:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.renewableProcurement}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      On-site Exported (kWh):
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.onsiteExportedKwh}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Net Metering:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.netMeteringApplicable}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Reporting Year:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.reportingYear}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Reporting Period:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.reportingPeriod}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Conditional Approach:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.conditionalApproach}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-              {/* Page 2 Section */}
-              <div>
-                <h2
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "700",
-                    color: "#000",
-                    marginBottom: "16px",
-                    borderBottom: "2px solid #FF6B35",
-                    paddingBottom: "8px",
-                  }}
-                >
-                  Page 2 - Energy Details
-                </h2>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Energy Activity Input:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.energyActivityInput}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Energy Category:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.energyCategory}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Tracking Type:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.trackingType}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #e0e0e0",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                      Has Renewable Electricity:
-                    </span>
-                    <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                      {data.hasRenewableElectricity}
-                    </span>
-                  </div>
-                  {data.hasRenewableElectricity === "Yes" && (
-                    <>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          padding: "8px 0",
-                          borderBottom: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                          Renewable Electricity:
-                        </span>
-                        <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                          {data.renewableElectricity}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          padding: "8px 0",
-                          borderBottom: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <span style={{ fontSize: "14px", color: "#666", fontWeight: "600" }}>
-                          Energy Consumption:
-                        </span>
-                        <span style={{ fontSize: "14px", color: "#000", fontWeight: "500" }}>
-                          {data.renewableEnergyConsumption}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Scope Boundary Notes */}
-              <div>
-                <h2
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "700",
-                    color: "#000",
-                    marginBottom: "16px",
-                    borderBottom: "2px solid #FF6B35",
-                    paddingBottom: "8px",
-                  }}
-                >
-                  Scope Boundary Notes
-                </h2>
+              {/* Header / Logo */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {/* Logo Placeholder */}
                 <div
                   style={{
-                    padding: "12px",
-                    backgroundColor: "#f9f9f9",
+                    width: "44px",
+                    height: "44px",
                     borderRadius: "8px",
-                    border: "1px solid #e0e0e0",
-                    fontSize: "14px",
-                    color: "#000",
-                    lineHeight: "1.6",
-                    minHeight: "80px",
+                    backgroundColor: "#d9ead3",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 800,
+                    color: "#3D5F2B",
                   }}
                 >
-                  {data.scopeBoundaryNotes}
+                  ghg
+                </div>
+
+                <div style={{ lineHeight: 1.1 }}>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#3D5F2B" }}>
+                    ghg{" "}
+                    <span style={{ fontWeight: 600, fontSize: "16px", color: "#444" }}>
+                      management
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "14px", fontWeight: 600, color: "#666" }}>
+                    institute
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Footer */}
-          <div
-            style={{
-              marginTop: "40px",
-              textAlign: "center",
-              borderTop: "2px solid #FF6B35",
-              paddingTop: "20px",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "14px",
-                color: "#666",
-                marginBottom: "8px",
-              }}
-            >
-              Generated by Sustally Application System
-            </p>
-            <p
-              style={{
-                fontSize: "12px",
-                color: "#999",
-              }}
-            >
-              Certificate Date: {new Date().toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
+              {/* Title */}
+              <div style={{ textAlign: "center", marginTop: "22px" }}>
+                <div
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: 700,
+                    letterSpacing: "2px",
+                    color: "#333",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  CERTIFICATE OF PROFICIENCY
+                </div>
+
+                <div
+                  style={{
+                    margin: "10px auto 0",
+                    width: "60%",
+                    height: "1px",
+                    backgroundColor: "#333",
+                    opacity: 0.5,
+                  }}
+                />
+              </div>
+
+              {/* Body */}
+              <div style={{ textAlign: "center", marginTop: "28px" }}>
+                <p style={{ fontSize: "15px", color: "#444", marginBottom: "12px" }}>
+                  This is to certify that
+                </p>
+
+                <div
+                  style={{
+                    fontSize: "34px",
+                    fontWeight: 800,
+                    letterSpacing: "1px",
+                    color: "#3D5F2B",
+                    marginBottom: "10px",
+                  }}
+                >
+                  {data.facilityName}
+                </div>
+
+                <p style={{ fontSize: "14px", color: "#444", marginBottom: "16px" }}>
+                  has passed the proficiency examination and other requirements for
+                  the course
+                </p>
+
+                <div
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: 700,
+                    color: "#222",
+                    marginBottom: "18px",
+                  }}
+                >
+                  201 Basics of Organizational GHG Accounting
+                </div>
+
+                <p style={{ fontSize: "13px", color: "#444", marginBottom: "24px" }}>
+                  On{" "}
+                  {new Date().toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+
+                <p style={{ fontSize: "13px", color: "#444" }}>In witness hereof</p>
+              </div>
+
+              {/* Signature + Seal */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                  marginTop: "35px",
+                }}
+              >
+                {/* Signature */}
+                <div style={{ width: "45%", textAlign: "left" }}>
+                  <div
+                    style={{
+                      height: "30px",
+                      fontFamily: "cursive",
+                      fontSize: "22px",
+                      color: "#111",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    M. Gillewater
+                  </div>
+
+                  <div style={{ borderTop: "2px solid #333", width: "220px" }} />
+
+                  <div style={{ fontSize: "12px", marginTop: "6px", color: "#444" }}>
+                    Michael Gillewater
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>Dean</div>
+                </div>
+
+                {/* Gold Seal */}
+                <div style={{ width: "45%", display: "flex", justifyContent: "flex-end" }}>
+                  <div
+                    style={{
+                      width: "110px",
+                      height: "110px",
+                      borderRadius: "999px",
+                      background:
+                        "radial-gradient(circle at 35% 35%, #fff6bf 0%, #d2a100 55%, #8a5a00 100%)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "14px",
+                      textAlign: "center",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      color: "#2d1d00",
+                      border: "3px solid rgba(0,0,0,0.15)",
+                    }}
+                  >
+                    GHG
+                    <br />
+                    MANAGEMENT
+                    <br />
+                    INSTITUTE
+                  </div>
+                </div>
+              </div>
+
+              {/* IMPORTANT: FOOTER SAME AS YOUR CODE */}
+              <div
+                style={{
+                  marginTop: "40px",
+                  textAlign: "center",
+                  borderTop: "2px solid #FF6B35",
+                  paddingTop: "20px",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#666",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Generated by Sustally Application System
+                </p>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "#999",
+                  }}
+                >
+                  Certificate Date:{" "}
+                  {new Date().toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -517,7 +306,13 @@ export default function ScopeCertificatePage() {
         >
           <button
             type="button"
-            onClick={() => router.push("/scope/review")}
+            onClick={() => {
+              const currentParams = searchParams.toString();
+              const url = currentParams
+                ? `/scope/review?${currentParams}`
+                : "/scope/review";
+              router.push(url);
+            }}
             style={{
               padding: "12px 24px",
               borderRadius: "8px",
