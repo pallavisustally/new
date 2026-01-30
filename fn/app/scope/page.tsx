@@ -1,13 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 type YesNo = "Yes" | "No" | "";
 
 type FormDataType = {
+  // User Identity (Passed from previous steps)
+  userName: string;
+  userEmail: string;
+  userMobile: string;
+  userCompany: string;
+
   // Page 1 - Box 1
   state: string;
   siteCount: string;
@@ -35,6 +41,8 @@ type FormDataType = {
   // Page 2 - Box 1 (Energy Activity)
   energyActivityInput: "Monthly" | "Yearly" | "";
   energyCategory: string;
+  unitConsumption: string;
+  spendAmount: string;
   trackingType: "Unit consumption" | "Spend amount" | "Both" | "";
   energySupportingEvidenceFile: File | null;
   energySourceDescription: string;
@@ -49,12 +57,26 @@ type FormDataType = {
 
 export default function TemplatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [page, setPage] = useState<1 | 2>(1);
 
   const [formData, setFormData] = useState<FormDataType>({
+    // Identity - Initialize from Search Params
+    userName: searchParams.get("name") || "",
+    userEmail: searchParams.get("email") || "",
+    userMobile: searchParams.get("mobile") || "",
+    userCompany: searchParams.get("company") || "",
+
     // Page 1
     state: "",
-    siteCount: "Site 1", // Default as per image
+    siteCount: (() => {
+      const count = searchParams.get("siteCount");
+      const number = searchParams.get("siteCountNumber");
+      if (count === "Multiple sites" && number) {
+        return number;
+      }
+      return "1"; // Default for Single Site
+    })(),
     facilityName: "",
 
     renewableProcurement: "",
@@ -70,6 +92,8 @@ export default function TemplatePage() {
     // Page 2 - Box 1
     energyActivityInput: "Monthly",
     energyCategory: "",
+    unitConsumption: "",
+    spendAmount: "",
     trackingType: "",
     energySupportingEvidenceFile: null,
     energySourceDescription: "",
@@ -103,13 +127,13 @@ export default function TemplatePage() {
 
     // Page 1 validations
     if (page === 1) {
-      if (!formData.state.trim()) newErrors.state = "State is required";
-      if (!formData.siteCount.trim()) newErrors.siteCount = "Site Count is required";
+      if (!formData.state?.trim()) newErrors.state = "State is required";
+      if (!formData.siteCount?.trim()) newErrors.siteCount = "Site Count is required";
       // Facility Name optional per image? "Based on your earlier input" placeholder
-      // if (!formData.facilityName.trim()) newErrors.facilityName = "Facility Name is required";
+      // if (!formData.facilityName?.trim()) newErrors.facilityName = "Facility Name is required";
       if (!formData.renewableProcurement) newErrors.renewableProcurement = "Please select an option";
       // Onsite generation might be optional or 0 allowed
-      // if (!formData.onsiteExportedKwh.trim()) newErrors.onsiteExportedKwh = "Required";
+      // if (!formData.onsiteExportedKwh?.trim()) newErrors.onsiteExportedKwh = "Required";
       if (!formData.netMeteringApplicable) newErrors.netMeteringApplicable = "Please select an option";
       if (!formData.reportingYear) newErrors.reportingYear = "Reporting Year is required";
       if (!formData.reportingPeriod) newErrors.reportingPeriod = "Reporting Period is required";
@@ -121,15 +145,22 @@ export default function TemplatePage() {
       // Page 2 validations
       if (!formData.energyActivityInput) newErrors.energyActivityInput = "Required";
       // Category might be pre-filled
-      // if (!formData.energyCategory.trim()) newErrors.energyCategory = "Required";
+      if (!formData.energyCategory?.trim()) newErrors.energyCategory = "Required";
       if (!formData.trackingType) newErrors.trackingType = "Required";
+
+      if (formData.trackingType === "Unit consumption" || formData.trackingType === "Both") {
+        if (!formData.unitConsumption?.trim()) newErrors.unitConsumption = "Required";
+      }
+      if (formData.trackingType === "Spend amount" || formData.trackingType === "Both") {
+        if (!formData.spendAmount?.trim()) newErrors.spendAmount = "Required";
+      }
 
       if (!formData.hasRenewableElectricity) newErrors.hasRenewableElectricity = "Required";
 
       // Conditional validations for renewable electricity
       if (formData.hasRenewableElectricity === "Yes") {
-        if (!formData.renewableElectricity.trim()) newErrors.renewableElectricity = "Required";
-        if (!formData.renewableEnergyConsumption.trim()) newErrors.renewableEnergyConsumption = "Required";
+        if (!formData.renewableElectricity?.trim()) newErrors.renewableElectricity = "Required";
+        if (!formData.renewableEnergyConsumption?.trim()) newErrors.renewableEnergyConsumption = "Required";
       }
     }
 
@@ -201,7 +232,7 @@ export default function TemplatePage() {
         type="button"
         onClick={() => handleRadioChange(name, "Yes")}
         className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${value === "Yes"
-          ? "bg-[#0D1821] text-white shadow-sm"
+          ? "bg-[#a802d1] text-white shadow-sm"
           : "text-gray-500 hover:text-gray-900"
           }`}
       >
@@ -211,7 +242,7 @@ export default function TemplatePage() {
         type="button"
         onClick={() => handleRadioChange(name, "No")}
         className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${value === "No"
-          ? "bg-[#0D1821] text-white shadow-sm"
+          ? "bg-[#a802d1] text-white shadow-sm"
           : "text-gray-500 hover:text-gray-900"
           }`}
       >
@@ -301,13 +332,47 @@ export default function TemplatePage() {
                     </label>
                     <select
                       name="state"
-                      value={formData.state}
+                      value={formData.state || ""}
                       onChange={handleChange}
                       className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none text-gray-600"
                     >
                       <option value="">Select grid region...</option>
-                      <option value="Region 1">Region 1</option>
-                      <option value="Region 2">Region 2</option>
+                      <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+                      <option value="Andhra Pradesh">Andhra Pradesh</option>
+                      <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                      <option value="Assam">Assam</option>
+                      <option value="Bihar">Bihar</option>
+                      <option value="Chandigarh">Chandigarh</option>
+                      <option value="Chhattisgarh">Chhattisgarh</option>
+                      <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
+                      <option value="Delhi">Delhi</option>
+                      <option value="Goa">Goa</option>
+                      <option value="Gujarat">Gujarat</option>
+                      <option value="Haryana">Haryana</option>
+                      <option value="Himachal Pradesh">Himachal Pradesh</option>
+                      <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                      <option value="Jharkhand">Jharkhand</option>
+                      <option value="Karnataka">Karnataka</option>
+                      <option value="Kerala">Kerala</option>
+                      <option value="Ladakh">Ladakh</option>
+                      <option value="Lakshadweep">Lakshadweep</option>
+                      <option value="Madhya Pradesh">Madhya Pradesh</option>
+                      <option value="Maharashtra">Maharashtra</option>
+                      <option value="Manipur">Manipur</option>
+                      <option value="Meghalaya">Meghalaya</option>
+                      <option value="Mizoram">Mizoram</option>
+                      <option value="Nagaland">Nagaland</option>
+                      <option value="Odisha">Odisha</option>
+                      <option value="Puducherry">Puducherry</option>
+                      <option value="Punjab">Punjab</option>
+                      <option value="Rajasthan">Rajasthan</option>
+                      <option value="Sikkim">Sikkim</option>
+                      <option value="Tamil Nadu">Tamil Nadu</option>
+                      <option value="Telangana">Telangana</option>
+                      <option value="Tripura">Tripura</option>
+                      <option value="Uttar Pradesh">Uttar Pradesh</option>
+                      <option value="Uttarakhand">Uttarakhand</option>
+                      <option value="West Bengal">West Bengal</option>
                     </select>
                     <p className="text-[10px] text-gray-400 mt-1.5">
                       Select the grid region where this site operates
@@ -323,7 +388,7 @@ export default function TemplatePage() {
                     <input
                       type="text"
                       name="siteCount"
-                      value={formData.siteCount}
+                      value={formData.siteCount || ""}
                       onChange={handleChange}
                       placeholder="Site 1"
                       className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
@@ -342,7 +407,7 @@ export default function TemplatePage() {
                     <input
                       type="text"
                       name="facilityName"
-                      value={formData.facilityName}
+                      value={formData.facilityName || ""}
                       onChange={handleChange}
                       placeholder="e.g., Pune Manufacturing Plant"
                       className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
@@ -388,7 +453,7 @@ export default function TemplatePage() {
                     <input
                       type="text"
                       name="onsiteExportedKwh"
-                      value={formData.onsiteExportedKwh}
+                      value={formData.onsiteExportedKwh || ""}
                       onChange={handleChange}
                       placeholder="Enter kWh value"
                       className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
@@ -462,7 +527,7 @@ export default function TemplatePage() {
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, reportingPeriod: p as any }))}
                             className={`flex-1 py-2 rounded text-center transition-all ${formData.reportingPeriod === p || (p === "Annual" && formData.reportingPeriod === "Annually")
-                              ? "bg-[#0D1821] text-white shadow-sm"
+                              ? "bg-[#a802d1] text-white shadow-sm"
                               : "text-gray-500 hover:text-gray-900"
                               }`}
                           >
@@ -594,17 +659,21 @@ export default function TemplatePage() {
                     {/* Category */}
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-2">
-                        Energy category
+                        Energy category <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        value="Grid Electricity"
-                        disabled
-                        className="w-full px-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-lg text-gray-400 cursor-not-allowed"
-                      />
-                      <p className="text-[10px] text-gray-400 mt-1.5">
-                        Fixed category for Scope 2 assessment
-                      </p>
+                      <select
+                        name="energyCategory"
+                        value={formData.energyCategory}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none text-gray-600"
+                      >
+                        <option value="">Select category...</option>
+                        <option value="Grid Energy">Grid Energy</option>
+                        <option value="Steam">Steam</option>
+                        <option value="Heating">Heating</option>
+                        <option value="Cooling">Cooling</option>
+                      </select>
+                      {errors.energyCategory && <p className="text-red-500 text-xs mt-1">{errors.energyCategory}</p>}
                     </div>
                   </div>
 
@@ -624,7 +693,7 @@ export default function TemplatePage() {
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, trackingType: t.id as any }))}
                           className={`px-4 py-2 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all border ${formData.trackingType === t.id
-                            ? "bg-[#0D1821] text-white border-[#0D1821]"
+                            ? "bg-[#a802d1] text-white border-[#a802d1]"
                             : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
                             }`}
                         >
@@ -634,37 +703,41 @@ export default function TemplatePage() {
                     </div>
                   </div>
 
-                  {/* Electricity Purchased & Source Type & Consumption */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="col-span-1">
-                      <label className="block text-xs font-bold text-gray-700 mb-2">
-                        Electricity purchased <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter value"
-                        className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
-                      <span className="absolute right-8 mt-2.5 text-xs text-gray-400 font-bold"></span>
-                    </div>
-                    <div className="col-span-1">
-                      <label className="block text-xs font-bold text-gray-700 mb-2">
-                        Data source type <span className="text-red-500">*</span>
-                      </label>
-                      <select className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <option>Select data source</option>
-                      </select>
-                    </div>
-                    <div className="col-span-1">
-                      <label className="block text-xs font-bold text-gray-700 mb-2">
-                        Energy Consumption <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter value"
-                        className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
-                    </div>
+                  {/* Dynamic Inputs based on Tracking Type */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {(formData.trackingType === "Unit consumption" || formData.trackingType === "Both") && (
+                      <div className="col-span-1">
+                        <label className="block text-xs font-bold text-gray-700 mb-2">
+                          Unit Consumption (kWh) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="unitConsumption"
+                          value={formData.unitConsumption || ""}
+                          onChange={handleChange}
+                          placeholder="Enter kWh"
+                          className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                        {errors.unitConsumption && <p className="text-red-500 text-xs mt-1">{errors.unitConsumption}</p>}
+                      </div>
+                    )}
+
+                    {(formData.trackingType === "Spend amount" || formData.trackingType === "Both") && (
+                      <div className="col-span-1">
+                        <label className="block text-xs font-bold text-gray-700 mb-2">
+                          Spend Amount <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="spendAmount"
+                          value={formData.spendAmount || ""}
+                          onChange={handleChange}
+                          placeholder="Enter amount"
+                          className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                        {errors.spendAmount && <p className="text-red-500 text-xs mt-1">{errors.spendAmount}</p>}
+                      </div>
+                    )}
                   </div>
 
                   {/* Supporting Evidence Upload */}
@@ -740,12 +813,16 @@ export default function TemplatePage() {
                         </label>
                         <input
                           type="text"
+                          name="renewableElectricity"
+                          value={formData.renewableElectricity || ""}
+                          onChange={handleChange}
                           placeholder="Enter value"
                           className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                         />
                         <div className="flex justify-end -mt-6 mr-2 pointer-events-none">
                           <span className="text-[10px] text-gray-400">kWh</span>
                         </div>
+                        {errors.renewableElectricity && <p className="text-red-500 text-xs mt-1">{errors.renewableElectricity}</p>}
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-gray-700 mb-2">
@@ -753,9 +830,13 @@ export default function TemplatePage() {
                         </label>
                         <input
                           type="text"
+                          name="renewableEnergyConsumption"
+                          value={formData.renewableEnergyConsumption || ""}
+                          onChange={handleChange}
                           placeholder="Enter value"
                           className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                         />
+                        {errors.renewableEnergyConsumption && <p className="text-red-500 text-xs mt-1">{errors.renewableEnergyConsumption}</p>}
                       </div>
                     </div>
                   )}
@@ -791,6 +872,9 @@ export default function TemplatePage() {
                       Energy source description
                     </label>
                     <textarea
+                      name="renewableEnergySourceDescription"
+                      value={formData.renewableEnergySourceDescription || ""}
+                      onChange={handleChange}
                       placeholder="Describe renewable energy source..."
                       className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none min-h-[60px]"
                     />

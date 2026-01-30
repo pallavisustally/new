@@ -65,7 +65,7 @@ const ReviewCard = ({
   children: React.ReactNode;
   accentColor: string;
 }) => (
-  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col h-full relative overflow-hidden group hover:shadow-md transition-shadow duration-300">
+  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group hover:shadow-md transition-shadow duration-300">
     <div
       className="absolute left-0 top-0 bottom-0 w-1"
       style={{ backgroundColor: accentColor }}
@@ -102,11 +102,49 @@ const DetailGrid = ({ children }: { children: React.ReactNode }) => (
 export default function ScopeReviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const [notification, setNotification] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const submitAssessment = async () => {
+    setIsSubmitting(true);
+    try {
+      const payload: any = {};
+      searchParams.forEach((value, key) => {
+        payload[key] = value;
+      });
+
+      // Ensure identity exists or provide fallback
+      if (!payload.userEmail && payload.email) payload.userEmail = payload.email; // fallback for direct linkage
+
+      const response = await fetch("/api/save-scope2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Submission failed");
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("Submission error:", error);
+      setNotification({
+        message: error instanceof Error ? error.message : "Failed to submit assessment",
+        type: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const data = useMemo(() => {
     return {
@@ -149,6 +187,43 @@ export default function ScopeReviewPage() {
     };
   }, [searchParams]);
 
+  if (isSubmitted) {
+    return (
+      <main className="h-screen overflow-hidden bg-[#f8f9fa] p-4 font-sans text-gray-900 flex flex-col items-center justify-center">
+        <div className="w-full max-w-6xl flex flex-col h-full bg-white rounded-3xl shadow-sm p-8 relative">
+
+          {/* Header with Logo */}
+          <div className="absolute top-8 right-8 flex items-center gap-6 opacity-90">
+            <img src="/sustally-logo.png" alt="Sustally" className="h-8 object-contain" />
+            <div className="h-8 w-[1px] bg-gray-300 mx-1"></div>
+            <div className="flex flex-col justify-center">
+              <span className="hidden md:block font-medium text-gray-500 text-xs max-w-[150px] leading-tight text-left">
+                Choose Sustally as your sustainability ally
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
+            {/* Big Green Checkmark */}
+            <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center mb-8 shadow-sm">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </div>
+
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              Thank you! Your assessment has been successfully completed.
+            </h1>
+
+            <p className="text-gray-500 text-lg">
+              You will get certificate directly to your email once admin approves your assignment.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="h-screen overflow-hidden bg-[#f8f9fa] p-4 font-sans text-gray-900 flex flex-col items-center">
       <div className="w-full max-w-6xl flex flex-col h-full">
@@ -166,12 +241,13 @@ export default function ScopeReviewPage() {
 
           <div className="flex flex-col items-end w-1/3">
             {/* Sustally Logo */}
-            <div className="mb-3 flex items-center gap-2 opacity-90">
+            <div className="flex items-center gap-6 opacity-90">
               <img src="/sustally-logo.png" alt="Sustally" className="h-8 object-contain" />
               <div className="h-8 w-[1px] bg-gray-300 mx-1"></div>
               <div className="flex flex-col justify-center">
-                <span className="text-[9px] font-bold text-gray-500  leading-none mb-[2px]">Choose Sustally as your</span>
-                <span className="text-[9px] font-bold text-gray-500 leading-none">sustainability ally</span>
+                <span className="hidden md:block font-medium text-gray-500 text-xs max-w-[150px] leading-tight text-left">
+                  Choose Sustally as your sustainability ally
+                </span>
               </div>
             </div>
 
@@ -191,7 +267,7 @@ export default function ScopeReviewPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
 
           {/* Left Column */}
-          <div className="flex flex-col gap-4 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-4 overflow-y-auto px-2 pb-6">
             {/* Boundary & Site Details */}
             <ReviewCard title="Boundary & Site Details" icon={<BoundaryIcon />} accentColor="#6366f1">
               <DetailGrid>
@@ -217,7 +293,7 @@ export default function ScopeReviewPage() {
           </div>
 
           {/* Right Column */}
-          <div className="flex flex-col gap-4 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-4 overflow-y-auto px-2 pb-6">
             {/* Energy Data */}
             <ReviewCard title="Energy Data" icon={<EnergyIcon />} accentColor="#f59e0b">
               <DetailGrid>
@@ -249,32 +325,23 @@ export default function ScopeReviewPage() {
         <div className="flex justify-center gap-4 mt-6 flex-shrink-0">
           <button
             type="button"
-            onClick={() => router.push("/scope")}
-            className="px-6 py-2.5 rounded-full border border-red-100 bg-red-50 text-red-600 text-xs font-bold flex items-center gap-2 hover:bg-red-100 transition-colors"
+            onClick={submitAssessment}
+            disabled={isSubmitting}
+            className={`px-6 py-2.5 rounded-full bg-[#a802d1] text-white text-xs font-bold flex items-center gap-2 shadow-lg hover:bg-[#a802d1] transition-colors shadow-purple-200 ${isSubmitting ? "opacity-70 cursor-wait" : ""}`}
           >
-            <CrossIcon />
-            Reject & request changes
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              const params = new URLSearchParams();
-              Object.entries(data).forEach(([key, value]) => {
-                if (value !== null && value !== undefined && value !== "-" && value !== "Not specified") {
-                  params.append(key, String(value));
-                }
-              });
-              router.push("/scope/certificate?" + params.toString());
-            }}
-            className="px-6 py-2.5 rounded-full bg-[#10b981] text-white text-xs font-bold flex items-center gap-2 shadow-lg hover:bg-[#059669] transition-colors shadow-green-200"
-          >
-            <CheckIcon />
-            Approve & verify
+            {isSubmitting ? (
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <CheckIcon />
+            )}
+            {isSubmitting ? "Submitting..." : "Submit"}
           </button>
         </div>
 
-      </div>
+      </div >
 
       {/* NOTIFICATION */}
       {notification && (

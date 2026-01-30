@@ -194,17 +194,16 @@ export default function ChooseTimePage() {
                     flexDirection: "column",
                     alignItems: "flex-end"
                 }}>
-                    <div className="flex items-center gap-3 opacity-80">
+                    <div className="flex items-center gap-2 opacity-80">
                         <img
                             src="/sustally-logo.png"
                             alt="sustally"
                             className="h-12 w-auto object-contain"
                         />
-                        <div className="flex gap-1 h-12">
-                            <div className="w-[1px] bg-gray-300 h-full"></div>
-                            <div className="w-[1px] bg-gray-300 h-full"></div>
+                        <div className="hidden md:flex gap-1 h-8 md:h-10">
+                            <div className="w-[1px] bg-gray-200 h-full"></div>
                         </div>
-                        <span className="font-medium text-gray-500 text-sm max-w-[200px] leading-tight text-left">
+                        <span className="font-medium text-gray-800 text-sm max-w-[200px] leading-tight text-left">
                             choose sustally as your sustainability ally
                         </span>
                     </div>
@@ -345,6 +344,21 @@ export default function ChooseTimePage() {
                         </div>
                     </div>
                 </div>
+                {/* Continue Button */}
+                <div className="w-full max-w-[600px] mt-8 flex justify-center">
+                    <button
+                        onClick={() => {
+                            const params = new URLSearchParams(searchParams.toString());
+                            router.push(`/scope?${params.toString()}`);
+                        }}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-indigo-200"
+                    >
+                        Continue to Assessment
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </button>
+                </div>
             </main>
         );
     }
@@ -426,7 +440,7 @@ export default function ChooseTimePage() {
                             />
                             <div className="flex gap-1 h-12">
                                 <div className="w-[1px] bg-gray-300 h-full"></div>
-                                <div className="w-[1px] bg-gray-300 h-full"></div>
+
                             </div>
                             <span className="font-medium text-gray-500 text-sm max-w-[200px] leading-tight text-left">
                                 choose sustally as your sustainability ally

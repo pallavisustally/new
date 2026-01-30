@@ -1,12 +1,27 @@
 
 import { NextResponse } from "next/server";
+import { saveSubmission, Scope2Submission } from "../../../lib/storage";
+import { sendAdminNotification } from "../../../lib/email";
 
 export async function POST(request: Request) {
     try {
         const data = await request.json();
-        console.log("Received Scope 2 data:", data);
+        const id = crypto.randomUUID();
 
-        // TODO: Implement actual saving logic (e.g., database or CMS)
+        const submission: Scope2Submission = {
+            id,
+            status: 'PENDING',
+            submittedAt: new Date().toISOString(),
+            data
+        };
+
+        await saveSubmission(submission);
+
+        // Notify Admin
+        // We do not await this to return fast to user, OR we await?
+        // Better to await to ensure email is sent or handle error, 
+        // but for now let's await it to catch errors in dev.
+        await sendAdminNotification(submission);
 
         return NextResponse.json({ success: true, message: "Data saved successfully" });
     } catch (error) {

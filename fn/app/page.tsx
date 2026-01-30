@@ -179,7 +179,7 @@ export default function HomePage() {
               />
               <div className="flex gap-1 h-12">
                 <div className="w-[1px] bg-gray-300 h-full"></div>
-                <div className="w-[1px] bg-gray-300 h-full"></div>
+                
               </div>
               <span className="font-medium text-gray-400 text-sm max-w-[200px] leading-tight text-left">
                 choose sustally as your sustainability ally
