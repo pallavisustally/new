@@ -34,7 +34,7 @@ export default buildConfig({
     const smtpPass = process.env.SMTP_PASS?.trim()
     const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
     const smtpPort = parseInt(process.env.SMTP_PORT || '587')
-    
+
     // Only configure email if credentials are provided
     if (!smtpUser || !smtpPass) {
       console.warn('⚠️  SMTP credentials not configured. Email functionality will be disabled.')
@@ -57,5 +57,15 @@ export default buildConfig({
     })
   })(),
   sharp,
+  cors: [
+    process.env.PAYLOAD_PUBLIC_SERVER_URL || '',
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    'http://localhost:3000', // Explicitly adding localhost:3000 for dev
+  ].filter(Boolean),
+  csrf: [
+    process.env.PAYLOAD_PUBLIC_SERVER_URL || '',
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    'http://localhost:3000',
+  ].filter(Boolean),
   plugins: [],
 })

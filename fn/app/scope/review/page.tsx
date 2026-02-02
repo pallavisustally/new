@@ -112,38 +112,15 @@ export default function ScopeReviewPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submitAssessment = async () => {
+    // The assessment is already submitted in the previous step (Scope Page)
+    // We just simulate the completion here to show the Thank You message
     setIsSubmitting(true);
-    try {
-      const payload: any = {};
-      searchParams.forEach((value, key) => {
-        payload[key] = value;
-      });
 
-      // Ensure identity exists or provide fallback
-      if (!payload.userEmail && payload.email) payload.userEmail = payload.email; // fallback for direct linkage
-
-      const response = await fetch("/api/save-scope2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Submission failed");
-      }
-
-      setIsSubmitted(true);
-    } catch (error) {
-      console.error("Submission error:", error);
-      setNotification({
-        message: error instanceof Error ? error.message : "Failed to submit assessment",
-        type: "error",
-      });
-    } finally {
+    // Simulate a small delay for better UX
+    setTimeout(() => {
       setIsSubmitting(false);
-    }
+      setIsSubmitted(true);
+    }, 1000);
   };
 
   const data = useMemo(() => {

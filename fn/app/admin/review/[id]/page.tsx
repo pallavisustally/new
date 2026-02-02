@@ -1,9 +1,24 @@
-
-import { getSubmission } from "../../../../lib/storage";
 import ReviewClient from "./ReviewClient";
 
-// Force dynamic behavior so it doesn't cache the result forever
-export const dynamic = 'force-dynamic';
+const SUSTALLY_API_URL = process.env.SUSTALLY_API_URL || "http://localhost:3001";
+
+async function getSubmissionFromSustally(id: string) {
+    try {
+        // We need to fetch from the Payload API directly
+        const res = await fetch(`${SUSTALLY_API_URL}/api/scope2-applications/${id}`, {
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (error) {
+        console.error("Error fetching submission:", error);
+        return null;
+    }
+}
 
 export default async function AdminReviewPage(props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
@@ -12,9 +27,9 @@ export default async function AdminReviewPage(props: { params: Promise<{ id: str
         return <div className="p-8 text-center text-red-500">Invalid Submission ID</div>;
     }
 
-    const submission = await getSubmission(params.id);
+    const submissionData = await getSubmissionFromSustally(params.id);
 
-    if (!submission) {
+    if (!submissionData) {
         return (
             <div className="flex h-screen items-center justify-center flex-col bg-gray-50">
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">Submission Not Found</h1>
@@ -22,6 +37,18 @@ export default async function AdminReviewPage(props: { params: Promise<{ id: str
             </div>
         );
     }
+
+    // Adapt Payload response to expected format if necessary
+    // Payload returns `id`, `createdAt`, `updatedAt`, and fields.
+    // The ReviewClient expects `Scope2Submission`.
+    // We need to map it.
+
+    const submission = {
+        id: submissionData.id,
+        status: submissionData.status || 'PENDING',
+        submittedAt: submissionData.createdAt,
+        data: submissionData // In Payload, fields are at root or in data? API returns fields at root.
+    };
 
     return <ReviewClient submission={submission} />;
 }

@@ -185,26 +185,29 @@ export interface Application {
  */
 export interface Scope2Application {
   id: string;
+  email?: string | null;
+  rejectionReason?: string | null;
   state: string;
   siteCount: string;
   facilityName: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   renewableProcurement: 'Yes' | 'No';
   onsiteExportedKwh: string;
   netMeteringApplicable: 'Yes' | 'No';
   reportingYear: string;
   reportingPeriod: 'Monthly' | 'Quarterly' | 'Annually';
   conditionalApproach: 'Operational Control' | 'Equity Share' | 'Financial Control';
-  scopeBoundaryNotes: string;
+  scopeBoundaryNotes?: string | null;
   energyActivityInput: 'Monthly' | 'Yearly';
   energyCategory: string;
   trackingType: 'Unit consumption' | 'Spend amount' | 'Both';
-  energySupportingEvidenceFile?: string | null;
-  energySourceDescription: string;
+  energySupportingEvidenceFile?: (string | null) | Media;
+  energySourceDescription?: string | null;
   hasRenewableElectricity: 'Yes' | 'No';
   renewableElectricity?: string | null;
   renewableEnergyConsumption?: string | null;
-  renewableSupportingEvidenceFile?: string | null;
-  renewableEnergySourceDescription: string;
+  renewableSupportingEvidenceFile?: (string | null) | Media;
+  renewableEnergySourceDescription?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -350,9 +353,12 @@ export interface ApplicationsSelect<T extends boolean = true> {
  * via the `definition` "scope2-applications_select".
  */
 export interface Scope2ApplicationsSelect<T extends boolean = true> {
+  email?: T;
+  rejectionReason?: T;
   state?: T;
   siteCount?: T;
   facilityName?: T;
+  status?: T;
   renewableProcurement?: T;
   onsiteExportedKwh?: T;
   netMeteringApplicable?: T;

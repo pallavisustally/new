@@ -28,9 +28,9 @@ type FormDataType = {
   reportingYear: Date | null;
   reportingPeriod: "Monthly" | "Quarterly" | "Annually" | "";
   conditionalApproach:
-  | "Operational control (default)"
-  | "Equity share"
-  | "Financial control"
+  | "Operational Control"
+  | "Equity Share"
+  | "Financial Control"
   | "";
 
   // Page 1 - Box 4
@@ -84,8 +84,8 @@ export default function TemplatePage() {
     netMeteringApplicable: "",
 
     reportingYear: new Date(),
-    reportingPeriod: "Annual" as any, // Mismatch in type vs default, fixing to match
-    conditionalApproach: "Operational control (default)",
+    reportingPeriod: "Annually", // Updated to match type
+    conditionalApproach: "Operational Control",
 
     scopeBoundaryNotes: "",
 
@@ -130,7 +130,7 @@ export default function TemplatePage() {
       if (!formData.state?.trim()) newErrors.state = "State is required";
       if (!formData.siteCount?.trim()) newErrors.siteCount = "Site Count is required";
       // Facility Name optional per image? "Based on your earlier input" placeholder
-      // if (!formData.facilityName?.trim()) newErrors.facilityName = "Facility Name is required";
+      if (!formData.facilityName?.trim()) newErrors.facilityName = "Facility Name is required";
       if (!formData.renewableProcurement) newErrors.renewableProcurement = "Please select an option";
       // Onsite generation might be optional or 0 allowed
       // if (!formData.onsiteExportedKwh?.trim()) newErrors.onsiteExportedKwh = "Required";
@@ -183,23 +183,28 @@ export default function TemplatePage() {
     setIsSubmitting(true);
     try {
       // Prepare data for API (convert File objects to filenames)
-      const submitData: any = {};
+      // Prepare data for API (FormData)
+      const formDataToSend = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
         if (value instanceof File) {
-          submitData[key] = value.name;
+          formDataToSend.append(key, value);
         } else if (value !== null && value !== undefined) {
-          submitData[key] = String(value);
+          // Handle Date objects explicitly if needed, but String() usually works for ISO if not careful.
+          // Here reportingYear is a Date. String(date) gives full text. toISOString is better for machines.
+          if (value instanceof Date) {
+            formDataToSend.append(key, value.toISOString());
+          } else {
+            formDataToSend.append(key, String(value));
+          }
         }
       });
 
-      // Save to Payload CMS
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      // Save to Payload CMS (Directly to Sustally)
+      const apiUrl = process.env.NEXT_PUBLIC_SUSTALLY_API_URL || "http://localhost:3001";
+      // NOTE: Do NOT set Content-Type header when sending FormData, the browser sets it with boundary
       const saveResponse = await fetch(`${apiUrl}/api/save-scope2`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submitData),
+        body: formDataToSend,
       });
 
       const saveResult = await saveResponse.json();
@@ -521,12 +526,12 @@ export default function TemplatePage() {
                         Reporting period <span className="text-red-500">*</span>
                       </label>
                       <div className="flex text-[10px] font-medium bg-gray-50 border border-gray-200 rounded-lg p-1">
-                        {["Monthly", "Quarterly", "Annual"].map((p) => (
+                        {["Monthly", "Quarterly", "Annually"].map((p) => (
                           <button
                             key={p}
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, reportingPeriod: p as any }))}
-                            className={`flex-1 py-2 rounded text-center transition-all ${formData.reportingPeriod === p || (p === "Annual" && formData.reportingPeriod === "Annually")
+                            className={`flex-1 py-2 rounded text-center transition-all ${formData.reportingPeriod === p
                               ? "bg-[#a802d1] text-white shadow-sm"
                               : "text-gray-500 hover:text-gray-900"
                               }`}
@@ -545,9 +550,9 @@ export default function TemplatePage() {
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       {[
-                        { id: "Operational control (default)", label: "Operational control", sub: "Default approach for most organizations", default: true },
-                        { id: "Equity share", label: "Equity share", sub: "Based on ownership percentage" },
-                        { id: "Financial control", label: "Financial control", sub: "Based on financial authority" }
+                        { id: "Operational Control", label: "Operational control", sub: "Default approach for most organizations", default: true },
+                        { id: "Equity Share", label: "Equity share", sub: "Based on ownership percentage" },
+                        { id: "Financial Control", label: "Financial control", sub: "Based on financial authority" }
                       ].map((opt) => (
                         <div
                           key={opt.id}

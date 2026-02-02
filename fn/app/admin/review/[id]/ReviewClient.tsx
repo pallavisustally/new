@@ -96,6 +96,8 @@ const DetailGrid = ({ children }: { children: React.ReactNode }) => (
     </div>
 );
 
+const SUSTALLY_API_URL = process.env.NEXT_PUBLIC_SUSTALLY_API_URL || "http://localhost:3001";
+
 export default function ReviewClient({ submission }: { submission: any }) {
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -110,10 +112,10 @@ export default function ReviewClient({ submission }: { submission: any }) {
 
         setIsProcessing(true);
         try {
-            const res = await fetch("/api/admin/approve", {
-                method: "POST",
+            const res = await fetch(`${SUSTALLY_API_URL}/api/scope2-applications/${submission.id}`, {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: submission.id }),
+                body: JSON.stringify({ status: "APPROVED" }),
             });
 
             if (!res.ok) throw new Error("Failed to approve");
@@ -131,10 +133,13 @@ export default function ReviewClient({ submission }: { submission: any }) {
     const handleReject = async () => {
         setIsProcessing(true);
         try {
-            const res = await fetch("/api/admin/reject", {
-                method: "POST",
+            const res = await fetch(`${SUSTALLY_API_URL}/api/scope2-applications/${submission.id}`, {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: submission.id, reason: rejectReason }),
+                body: JSON.stringify({
+                    status: "REJECTED",
+                    rejectionReason: rejectReason
+                }),
             });
 
             if (!res.ok) throw new Error("Failed to reject");
@@ -162,8 +167,8 @@ export default function ReviewClient({ submission }: { submission: any }) {
                     </div>
 
                     <div className={`px-4 py-1.5 rounded-full text-sm font-bold border ${status === 'APPROVED' ? 'bg-green-100 text-green-700 border-green-200' :
-                            status === 'REJECTED' ? 'bg-red-100 text-red-700 border-red-200' :
-                                'bg-yellow-100 text-yellow-700 border-yellow-200'
+                        status === 'REJECTED' ? 'bg-red-100 text-red-700 border-red-200' :
+                            'bg-yellow-100 text-yellow-700 border-yellow-200'
                         }`}>
                         {status}
                     </div>

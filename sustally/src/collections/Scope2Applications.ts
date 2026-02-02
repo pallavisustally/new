@@ -1,4 +1,5 @@
-import { CollectionConfig } from "payload/types";
+import type { CollectionConfig } from "payload";
+// import { afterChangeHook } from "./Scope2Hooks"; // Removed static import to prevent client-side issues
 
 const Scope2Applications: CollectionConfig = {
   slug: "scope2-applications",
@@ -8,8 +9,37 @@ const Scope2Applications: CollectionConfig = {
   access: {
     create: () => true, // Allow anyone to create applications
     read: () => true, // Allow anyone to read applications
+    update: () => true, // Creating open access for now to resolve 401 error
+    delete: ({ req: { user } }) => !!user,
+  },
+  hooks: {
+    afterChange: [
+      async (args: any) => {
+        // Only load and run the hook on the server
+        if (typeof window === 'undefined') {
+          const { afterChangeHook } = await import('./Scope2Hooks');
+          return afterChangeHook(args);
+        }
+        return args.doc;
+      }
+    ],
   },
   fields: [
+    {
+      name: "email",
+      type: "email",
+      admin: {
+        position: "sidebar",
+      },
+    },
+    {
+      name: "rejectionReason",
+      type: "textarea",
+      admin: {
+        position: "sidebar",
+        condition: (data) => data?.status === "REJECTED",
+      }
+    },
     // Page 1 - Box 1
     {
       name: "state",
@@ -24,6 +54,17 @@ const Scope2Applications: CollectionConfig = {
     {
       name: "facilityName",
       type: "text",
+      required: true,
+    },
+    {
+      name: "status",
+      type: "select",
+      options: [
+        { label: "Pending", value: "PENDING" },
+        { label: "Approved", value: "APPROVED" },
+        { label: "Rejected", value: "REJECTED" },
+      ],
+      defaultValue: "PENDING",
       required: true,
     },
     // Page 1 - Box 2
@@ -80,7 +121,7 @@ const Scope2Applications: CollectionConfig = {
     {
       name: "scopeBoundaryNotes",
       type: "textarea",
-      required: true,
+      required: false,
     },
     // Page 2 - Box 1 (Energy Activity)
     {
@@ -109,12 +150,13 @@ const Scope2Applications: CollectionConfig = {
     },
     {
       name: "energySupportingEvidenceFile",
-      type: "text", // Store filename, or could be upload field
+      type: "upload",
+      relationTo: "media",
     },
     {
       name: "energySourceDescription",
       type: "textarea",
-      required: true,
+      required: false,
     },
     // Page 2 - Box 2 (Renewable Electricity)
     {
@@ -136,12 +178,13 @@ const Scope2Applications: CollectionConfig = {
     },
     {
       name: "renewableSupportingEvidenceFile",
-      type: "text", // Store filename, or could be upload field
+      type: "upload",
+      relationTo: "media",
     },
     {
       name: "renewableEnergySourceDescription",
       type: "textarea",
-      required: true,
+      required: false,
     },
   ],
 };

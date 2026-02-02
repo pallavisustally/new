@@ -1,6 +1,7 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { APIError } from 'payload'
+import { sendAdminNotification, Scope2Submission } from '../../../../lib/email'
 
 export const OPTIONS = async (request: Request) => {
   // Handle CORS preflight
@@ -26,11 +27,64 @@ export const POST = async (request: Request) => {
       config: configPromise,
     })
 
-    const data = await request.json()
+    const contentType = request.headers.get('content-type') || ''
+
+    let data: any = {}
+    let files: Record<string, File> = {}
+
+    // Check if it's FormData
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+
+      // Parse FormData
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          files[key] = value
+        } else {
+          data[key] = value
+        }
+      }
+    } else {
+      // Fallback to JSON (for testing or legacy calls)
+      data = await request.json()
+    }
 
     // Validate required fields
     if (!data.facilityName) {
       throw new APIError('Facility Name is required', 400)
+    }
+
+    // Helper to upload file to Media collection
+    const uploadFile = async (file: File) => {
+      if (!file) return null
+
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+
+      const result = await payload.create({
+        collection: 'media',
+        data: {
+          alt: file.name,
+        },
+        file: {
+          data: buffer,
+          name: file.name,
+          mimetype: file.type,
+          size: file.size,
+        },
+      })
+      return result.id
+    }
+
+    // Handle File Uploads
+    let energyEvidenceId = null
+    let renewableEvidenceId = null
+
+    if (files.energySupportingEvidenceFile) {
+      energyEvidenceId = await uploadFile(files.energySupportingEvidenceFile)
+    }
+    if (files.renewableSupportingEvidenceFile) {
+      renewableEvidenceId = await uploadFile(files.renewableSupportingEvidenceFile)
     }
 
     // Prepare the data for Payload
@@ -38,6 +92,7 @@ export const POST = async (request: Request) => {
       state: data.state || '',
       siteCount: data.siteCount || '',
       facilityName: data.facilityName || '',
+      email: data.userEmail || '',
       renewableProcurement: data.renewableProcurement || '',
       onsiteExportedKwh: data.onsiteExportedKwh || '',
       netMeteringApplicable: data.netMeteringApplicable || '',
@@ -48,13 +103,16 @@ export const POST = async (request: Request) => {
       energyActivityInput: data.energyActivityInput || '',
       energyCategory: data.energyCategory || '',
       trackingType: data.trackingType || '',
-      energySupportingEvidenceFile: data.energySupportingEvidenceFile || '',
+      // Assign uploaded Media IDs
+      energySupportingEvidenceFile: energyEvidenceId,
       energySourceDescription: data.energySourceDescription || '',
       hasRenewableElectricity: data.hasRenewableElectricity || '',
       renewableElectricity: data.renewableElectricity || '',
       renewableEnergyConsumption: data.renewableEnergyConsumption || '',
-      renewableSupportingEvidenceFile: data.renewableSupportingEvidenceFile || '',
+      // Assign uploaded Media IDs
+      renewableSupportingEvidenceFile: renewableEvidenceId,
       renewableEnergySourceDescription: data.renewableEnergySourceDescription || '',
+      status: 'PENDING' as 'PENDING',
     }
 
     // Create the scope2 application in Payload
@@ -62,6 +120,18 @@ export const POST = async (request: Request) => {
       collection: 'scope2-applications',
       data: scope2Data,
     })
+
+    // Prepare submission object for email
+    const submission: Scope2Submission = {
+      id: String(created.id),
+      status: 'PENDING',
+      submittedAt: new Date().toISOString(),
+      data: scope2Data,
+    }
+
+    // Send Admin Notification
+    console.log(`[API] Triggering admin notification for submission ${created.id}`);
+    await sendAdminNotification(submission)
 
     // Get origin for CORS
     const origin = request.headers.get('origin')
@@ -87,8 +157,7 @@ export const POST = async (request: Request) => {
     }, { headers })
   } catch (error) {
     console.error('Error saving scope2 application:', error)
-    
-    // Get origin for CORS
+
     const origin = request.headers.get('origin')
     const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001'
     const allowedOrigins = corsOriginsEnv.split(',').map(origin => origin.trim())
@@ -97,14 +166,13 @@ export const POST = async (request: Request) => {
       'Content-Type': 'application/json',
     })
 
-    // Add CORS headers to error response
     if (origin && allowedOrigins.includes(origin)) {
       errorHeaders.set('Access-Control-Allow-Origin', origin)
       errorHeaders.set('Access-Control-Allow-Credentials', 'true')
     }
     errorHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
     errorHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    
+
     if (error instanceof APIError) {
       return Response.json(
         { success: false, error: error.message },
@@ -112,7 +180,6 @@ export const POST = async (request: Request) => {
       )
     }
 
-    // Extract error message from the error object
     let errorMessage = 'Failed to save scope 2 application'
     if (error instanceof Error) {
       errorMessage = error.message || errorMessage
