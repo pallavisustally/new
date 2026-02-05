@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Modal from "../../components/Modal"; // Adjust path as needed based on file structure
 
@@ -58,7 +58,7 @@ const shifts: { label: ShiftType; icon: React.ReactNode }[] = [
     { label: "Evening", icon: <MoonIcon /> }
 ];
 
-export default function ChooseTimePage() {
+function ChooseTimeContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -114,6 +114,16 @@ export default function ChooseTimePage() {
                 ? parseFloat(((renewableEnergy / totalEnergy) * 100).toFixed(2))
                 : 0;
 
+            // Construct Assessment Link
+            // Use window.location.origin to get the base URL
+            const currentParams = new URLSearchParams(searchParams.toString());
+            currentParams.append("assessmentId", assessmentId);
+            const assessmentLink = `${window.location.origin}/scope?${currentParams.toString()}`;
+
+            // Calculate Expire Time
+            // "based on the slot" - sending the slot time as the expiry/reference time
+            const expireTime = `${assignmentDate} at ${assignmentTime}`;
+
             const dataToSend = {
                 name: searchParams.get("name") || "-",
                 mobile: searchParams.get("mobile") || "-",
@@ -128,7 +138,9 @@ export default function ChooseTimePage() {
                 assignmentDate: assignmentDate,
                 assignmentSlot: assignmentTime, // using time as slot for now
                 assignmentTime: assignmentTime,
-                assessmentId: assessmentId
+                assessmentId: assessmentId,
+                assessmentLink: assessmentLink,
+                expireTime: expireTime
             };
 
             setIsSendingEmail(true);
@@ -257,7 +269,7 @@ export default function ChooseTimePage() {
                         maxWidth: "400px",
                         margin: "0 auto 30px"
                     }}>
-                        We'll reach out shortly with the next steps.
+                        Please check your email for the assessment link.
                     </p>
 
                     {/* Booking Time Card */}
@@ -336,27 +348,21 @@ export default function ChooseTimePage() {
                         </div>
                         <div style={{ textAlign: "left" }}>
                             <p style={{ fontSize: "14px", fontWeight: "600", color: "#2E7D32", margin: "0 0 4px 0" }}>
-                                A confirmation email has been sent to your registered contact email.
+                                A confirmation and assessment link has been sent to your registered contact email.
                             </p>
                             <p style={{ fontSize: "12px", color: "#558B2F", margin: 0 }}>
-                                Use the link in the email continue from the Event.
+                                Check your inbox (and spam folder) for the access link.
                             </p>
                         </div>
                     </div>
                 </div>
-                {/* Continue Button */}
+                {/* Back to Home Button */}
                 <div className="w-full max-w-[600px] mt-8 flex justify-center">
                     <button
-                        onClick={() => {
-                            const params = new URLSearchParams(searchParams.toString());
-                            router.push(`/scope?${params.toString()}`);
-                        }}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-indigo-200"
+                        onClick={() => router.push('/')}
+                        className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-full font-semibold transition-all"
                     >
-                        Continue to Assessment
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
+                        Back to Home
                     </button>
                 </div>
             </main>
@@ -699,5 +705,13 @@ export default function ChooseTimePage() {
                 </div>
             </Modal>
         </div>
+    );
+}
+
+export default function ChooseTimePage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ChooseTimeContent />
+        </Suspense>
     );
 }

@@ -1,45 +1,70 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
-export default function ScopeCertificatePage() {
+/* eslint-disable @next/next/no-img-element */
+
+function CertificateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const certificateRef = useRef<HTMLDivElement>(null);
+  const dashboardRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+  const [generatedId, setGeneratedId] = useState("");
+
+  useEffect(() => {
+    setGeneratedId(`CEA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  }, []);
 
   const data = useMemo(() => {
     return {
       state: searchParams.get("state") || "-",
       siteCount: searchParams.get("siteCount") || "-",
-      facilityName: searchParams.get("facilityName") || "CHLOE ALLEN",
-      reportingYear: searchParams.get("reportingYear") || "-",
+      facilityName: searchParams.get("facilityName") || "ACME MANUFACTURING LTD.",
+      reportingYear: searchParams.get("reportingYear") || "2025-26",
       reportingPeriod: searchParams.get("reportingPeriod") || "-",
       scopeBoundaryNotes: searchParams.get("scopeBoundaryNotes") || "-",
+      renewableElectricity: searchParams.get("renewableElectricity") || "0",
+      renewableEnergyConsumption: searchParams.get("renewableEnergyConsumption") || "0",
+      onsiteExportedKwh: searchParams.get("onsiteExportedKwh") || "0",
+      certificateId: searchParams.get("certificateId") || generatedId,
     };
-  }, [searchParams]);
+  }, [searchParams, generatedId]);
+
+  // Mock data for charts
+  const chartData = [
+    { name: "Grid Electricity", value: 1680, color: "#9ca3af" },
+    { name: "Renewable / Contracted", value: 770, color: "#22c55e" },
+  ];
 
   const handleDownloadCertificate = async () => {
     if (isDownloading || !certificateRef.current) return;
 
     setIsDownloading(true);
     try {
-      const canvas = await html2canvas(certificateRef.current, {
+      // 1. Capture the certificate div as a PNG data URL
+      const dataUrl = await toPng(certificateRef.current, {
+        pixelRatio: 3, // Higher scale for better quality
         backgroundColor: "#ffffff",
-        scale: 2,
-        logging: false,
-        useCORS: true,
       });
 
-      const imgData = canvas.toDataURL("image/png", 1.0);
-      const link = document.createElement("a");
-      link.download = `scope2-certificate-${
-        data.facilityName || "application"
-      }-${new Date().toISOString().split("T")[0]}.png`;
-      link.href = imgData;
-      link.click();
+      // 2. Initialize jsPDF in Portrait mode for A4
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      // 3. Add image to PDF
+      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+      // 4. Save
+      const filename = `certificate-${data.facilityName.replace(/\s+/g, "-")}.pdf`;
+      pdf.save(filename);
+
     } catch (error) {
       console.error("Error generating certificate:", error);
       alert("Failed to download certificate. Please try again.");
@@ -48,305 +73,431 @@ export default function ScopeCertificatePage() {
     }
   };
 
+  const handleDownloadReport = async () => {
+    if (isDownloadingReport || !dashboardRef.current) return;
+
+    setIsDownloadingReport(true);
+    try {
+      const dataUrl = await toPng(dashboardRef.current, {
+        pixelRatio: 4, // Higher quality
+        backgroundColor: "#f9fafb",
+        onClone: (clonedDoc: any) => {
+          // Robustly remove Next Steps section using multiple selectors
+          const nextStepsInfo = clonedDoc.querySelector(".next-steps-target") || clonedDoc.getElementById("next-steps-section");
+          if (nextStepsInfo) {
+            nextStepsInfo.style.display = "none"; // Hide it
+          }
+
+          // Expand AI Insights to full width
+          const aiInsights = clonedDoc.querySelector(".ai-insights-target") || clonedDoc.getElementById("ai-insights-section");
+          if (aiInsights && aiInsights instanceof HTMLElement) {
+            aiInsights.style.width = "100%";
+          }
+        }
+      } as any);
+
+      const pdf = new jsPDF("l", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, imgHeight);
+      pdf.save(`assessment-report-${data.facilityName.replace(/\s+/g, "-")}.pdf`);
+    } catch (error) {
+      console.error("Error generating report:", error);
+      alert("Failed to download report.");
+    } finally {
+      setIsDownloadingReport(false);
+    }
+  };
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f3f2f2ff",
-        padding: "40px 20px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "1200px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "24px",
-        }}
-      >
-        {/* Certificate Display */}
-        <div
-          ref={certificateRef}
-          style={{
-            width: "100%",
-            backgroundColor: "#ffffff",
-            borderRadius: "12px",
-            padding: "40px",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          {/* GREEN FRAME (like image) */}
-          <div
-            style={{
-              border: "14px solid #3D5F2B",
-              padding: "24px",
-              position: "relative",
-              backgroundColor: "#fff",
-            }}
-          >
-            {/* inner thin frame */}
-            <div
-              style={{
-                border: "2px solid #3D5F2B",
-                padding: "40px 50px",
-                position: "relative",
-              }}
-            >
-              {/* Header / Logo */}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                {/* Logo Placeholder */}
-                <div
-                  style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "8px",
-                    backgroundColor: "#d9ead3",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 800,
-                    color: "#3D5F2B",
-                  }}
-                >
-                  ghg
-                </div>
+    <>
+      <div ref={dashboardRef} className="flex-1 flex flex-col gap-4 max-w-[1600px] mx-auto w-full">
 
-                <div style={{ lineHeight: 1.1 }}>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#3D5F2B" }}>
-                    ghg{" "}
-                    <span style={{ fontWeight: 600, fontSize: "16px", color: "#444" }}>
-                      management
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: "#666" }}>
-                    institute
-                  </div>
-                </div>
-              </div>
+        {/* Header Section */}
+        <div className="flex items-start justify-between shrink-0">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Scope 2 Emissions & Cost Performance</h1>
+            <div className="flex items-center gap-3 mt-1 text-gray-500 text-sm">
+              <span className="font-medium text-gray-700">{data.facilityName}</span>
+              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+              <span>FY {data.reportingYear}</span>
+            </div>
+          </div>
 
-              {/* Title */}
-              <div style={{ textAlign: "center", marginTop: "22px" }}>
-                <div
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    letterSpacing: "2px",
-                    color: "#333",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  CERTIFICATE OF PROFICIENCY
-                </div>
+          <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 flex items-center gap-2 max-w-md">
+            <div className="bg-green-500 rounded-full p-0.5 shrink-0">
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <div>
+              <h3 className="text-green-800 font-semibold text-xs">Assessment verified successfully</h3>
+            </div>
+          </div>
+        </div>
 
-                <div
-                  style={{
-                    margin: "10px auto 0",
-                    width: "60%",
-                    height: "1px",
-                    backgroundColor: "#333",
-                    opacity: 0.5,
-                  }}
-                />
-              </div>
+        {/* Level 1: Metrics */}
+        <div className="grid grid-cols-4 gap-4 shrink-0 h-[15%] min-h-[100px]">
+          {/* Metric 1 */}
+          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <p className="text-xs font-medium text-gray-500">Total Scope 2 Emissions</p>
+              <div className="p-1.5 bg-teal-50 rounded-md"><svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-xl font-bold text-gray-900">1,248 <span className="text-xs font-normal text-gray-500">tCO₂e</span></h3>
+              <span className="text-[10px] font-medium text-red-500 bg-red-50 px-1 py-0.5 rounded">+8.2%</span>
+            </div>
+          </div>
+          {/* Metric 2 */}
+          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <p className="text-xs font-medium text-gray-500">Location-based Emissions</p>
+              <div className="p-1.5 bg-blue-50 rounded-md"><svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-xl font-bold text-gray-900">1,892 <span className="text-xs font-normal text-gray-500">tCO₂e</span></h3>
+            </div>
+          </div>
+          {/* Metric 3 */}
+          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <p className="text-xs font-medium text-gray-500">Renewable Energy</p>
+              <div className="p-1.5 bg-yellow-50 rounded-md"><svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-xl font-bold text-gray-900">2.45 <span className="text-xs font-normal text-gray-500">GWh</span></h3>
+              <span className="text-[10px] font-medium text-red-500 bg-red-50 px-1 py-0.5 rounded">+8.2%</span>
+            </div>
+          </div>
+          {/* Metric 4 */}
+          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <p className="text-xs font-medium text-gray-500">Total Electricity Consumed</p>
+              <div className="p-1.5 bg-cyan-50 rounded-md"><svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-xl font-bold text-gray-900">2.45 <span className="text-xs font-normal text-gray-500">GWh</span></h3>
+              <span className="text-[10px] font-medium text-red-500 bg-red-50 px-1 py-0.5 rounded">+8.2%</span>
+            </div>
+          </div>
+        </div>
 
-              {/* Body */}
-              <div style={{ textAlign: "center", marginTop: "28px" }}>
-                <p style={{ fontSize: "15px", color: "#444", marginBottom: "12px" }}>
-                  This is to certify that
-                </p>
-
-                <div
-                  style={{
-                    fontSize: "34px",
-                    fontWeight: 800,
-                    letterSpacing: "1px",
-                    color: "#3D5F2B",
-                    marginBottom: "10px",
-                  }}
-                >
-                  {data.facilityName}
-                </div>
-
-                <p style={{ fontSize: "14px", color: "#444", marginBottom: "16px" }}>
-                  has passed the proficiency examination and other requirements for
-                  the course
-                </p>
-
-                <div
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    color: "#222",
-                    marginBottom: "18px",
-                  }}
-                >
-                  201 Basics of Organizational GHG Accounting
-                </div>
-
-                <p style={{ fontSize: "13px", color: "#444", marginBottom: "24px" }}>
-                  On{" "}
-                  {new Date().toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-
-                <p style={{ fontSize: "13px", color: "#444" }}>In witness hereof</p>
-              </div>
-
-              {/* Signature + Seal */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  marginTop: "35px",
-                }}
-              >
-                {/* Signature */}
-                <div style={{ width: "45%", textAlign: "left" }}>
-                  <div
-                    style={{
-                      height: "30px",
-                      fontFamily: "cursive",
-                      fontSize: "22px",
-                      color: "#111",
-                      marginBottom: "6px",
-                    }}
+        {/* Level 2: Charts & Cost & Downloads */}
+        <div className="grid grid-cols-12 gap-4 flex-1 h-[40%] min-h-[250px]">
+          {/* Pie Chart */}
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 col-span-4 flex flex-col">
+            <h3 className="text-gray-500 text-xs font-medium mb-2">Electricity Consumption Breakdown</h3>
+            <div className="flex-1 w-full relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="55%"
+                    outerRadius="75%"
+                    paddingAngle={5}
+                    dataKey="value"
                   >
-                    M. Gillewater
-                  </div>
-
-                  <div style={{ borderTop: "2px solid #333", width: "220px" }} />
-
-                  <div style={{ fontSize: "12px", marginTop: "6px", color: "#444" }}>
-                    Michael Gillewater
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>Dean</div>
-                </div>
-
-                {/* Gold Seal */}
-                <div style={{ width: "45%", display: "flex", justifyContent: "flex-end" }}>
-                  <div
-                    style={{
-                      width: "110px",
-                      height: "110px",
-                      borderRadius: "999px",
-                      background:
-                        "radial-gradient(circle at 35% 35%, #fff6bf 0%, #d2a100 55%, #8a5a00 100%)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "14px",
-                      textAlign: "center",
-                      fontSize: "11px",
-                      fontWeight: 800,
-                      color: "#2d1d00",
-                      border: "3px solid rgba(0,0,0,0.15)",
-                    }}
-                  >
-                    GHG
-                    <br />
-                    MANAGEMENT
-                    <br />
-                    INSTITUTE
-                  </div>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-center">
+                  <span className="text-lg font-bold text-gray-900 block">2,450</span>
+                  <span className="text-[10px] text-gray-500 uppercase">MWh Total</span>
                 </div>
               </div>
+            </div>
+            <div className="mt-2 text-xs space-y-1">
+              {chartData.map((item, i) => (
+                <div key={i} className="flex justify-between items-center">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></span>
+                    <span className="text-gray-600">{item.name}</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-              {/* IMPORTANT: FOOTER SAME AS YOUR CODE */}
+          {/* Cost Projection */}
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 col-span-4 flex flex-col justify-between">
+            <h3 className="text-gray-500 text-xs font-medium">Cost Projection</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Baseline (Grid-only)</span>
+                  <p className="text-xl font-bold text-gray-900">₹2.55 Cr</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Actual Spend</span>
+                  <p className="text-xl font-bold text-gray-900">₹2.16 Cr</p>
+                </div>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg border border-green-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                  <span className="text-xs font-medium text-green-800">Total Savings</span>
+                </div>
+                <p className="text-2xl font-bold text-green-700">₹38.6 Lakhs</p>
+                <p className="text-[10px] text-green-600">15% reduction realized through strategic sourcing</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Downloads */}
+          <div className="bg-gradient-to-br from-indigo-50 to-white p-4 rounded-xl shadow-sm border border-indigo-100 col-span-4 flex flex-col">
+            <h3 className="text-indigo-900 text-xs font-semibold mb-3">Available Reports</h3>
+            <div className="flex-1 flex flex-col gap-2 overflow-y-auto">
               <div
-                style={{
-                  marginTop: "40px",
-                  textAlign: "center",
-                  borderTop: "2px solid #FF6B35",
-                  paddingTop: "20px",
-                }}
+                className={`flex items-center justify-between p-2 bg-white rounded-lg border border-indigo-50 hover:border-indigo-200 transition-colors cursor-pointer ${isDownloadingReport ? 'opacity-70 pointer-events-none' : ''}`}
+                onClick={handleDownloadReport}
               >
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#666",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Generated by Sustally Application System
-                </p>
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "#999",
-                  }}
-                >
-                  Certificate Date:{" "}
-                  {new Date().toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  </div>
+                  <div className="leading-tight">
+                    <p className="text-xs font-medium text-gray-800">Assessment report</p>
+                    <p className="text-[10px] text-gray-500">Detailed analysis</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-gray-400">
+                  {isDownloadingReport ? (
+                    <span className="animate-pulse">Loading...</span>
+                  ) : (
+                    "DOWNLOAD"
+                  )}
+                </span>
+              </div>
+
+              <div
+                className={`flex items-center justify-between p-2 bg-white rounded-lg border border-indigo-50 hover:border-indigo-200 transition-colors cursor-pointer ${isDownloading ? 'opacity-70 pointer-events-none' : ''}`}
+                onClick={handleDownloadCertificate}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  </div>
+                  <div className="leading-tight">
+                    <p className="text-xs font-medium text-gray-800">Verification certificate</p>
+                    <p className="text-[10px] text-gray-500">Official proof</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-gray-400">
+                  {isDownloading ? (
+                    <span className="animate-pulse">Loading...</span>
+                  ) : (
+                    "DOWNLOAD"
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-indigo-50 hover:border-indigo-200 transition-colors">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                  </div>
+                  <div className="leading-tight">
+                    <p className="text-xs font-medium text-gray-800">BRSR P6 Report</p>
+                    <p className="text-[10px] text-gray-500">SEBI compliant</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-gray-400">PDF</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Level 3: AI Insights & Footers */}
+        <div className="flex gap-4 h-[25%] shrink-0 min-h-[160px]">
+          {/* AI Insights - 70% Width */}
+          <div id="ai-insights-section" className="w-[70%] flex flex-col ai-insights-target">
+            <div className="flex items-center gap-2 mb-2 shrink-0">
+              <svg className="w-4 h-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+              <h3 className="text-sm font-semibold text-gray-800">Operational AI Insights</h3>
+            </div>
+            <div className="grid grid-cols-3 gap-3 flex-1">
+              <div className="bg-green-50 rounded-lg p-3 border border-green-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-semibold text-gray-900 text-xs">Production Efficiency</h4>
+                  <span className="bg-red-500 text-white text-[8px] uppercase font-bold px-1.5 py-0.5 rounded-full">High</span>
+                </div>
+                <p className="text-[10px] text-gray-600 leading-snug line-clamp-3">Manufacturing efficiency reached 89.2%, up 6.8%. Scale successful practices.</p>
+                <button className="w-full bg-white text-gray-800 text-[10px] font-semibold py-1.5 rounded border border-green-200 hover:bg-green-50 transition-colors flex items-center justify-between px-2">
+                  Audit Lines
+                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                </button>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-semibold text-gray-900 text-xs">Inventory Opt.</h4>
+                  <span className="bg-red-500 text-white text-[8px] uppercase font-bold px-1.5 py-0.5 rounded-full">High</span>
+                </div>
+                <p className="text-[10px] text-gray-600 leading-snug line-clamp-3">Electronics category showing 6.2x turnover rate. Increase allocation by 20%.</p>
+                <button className="w-full bg-white text-gray-800 text-[10px] font-semibold py-1.5 rounded border border-blue-200 hover:bg-blue-50 transition-colors flex items-center justify-between px-2">
+                  Update Plan
+                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                </button>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-semibold text-gray-900 text-xs">Delivery Risk</h4>
+                  <span className="bg-gray-800 text-white text-[8px] uppercase font-bold px-1.5 py-0.5 rounded-full shrink-0">Med</span>
+                </div>
+                <p className="text-[10px] text-gray-600 leading-snug line-clamp-3">On-time delivery dipped to 92% in Week 3. Investigate bottlenecks.</p>
+                <button className="w-full bg-white text-gray-800 text-[10px] font-semibold py-1.5 rounded border border-yellow-200 hover:bg-yellow-50 transition-colors flex items-center justify-between px-2">
+                  Check Logistics
+                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="next-steps-section" className="w-[30%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col justify-center gap-3 next-steps-target">
+            <div className="text-center mb-1">
+              <h4 className="font-semibold text-gray-900 text-sm">Next Steps</h4>
+              <p className="text-[10px] text-gray-500">Complete assessment for other sites</p>
+            </div>
+            <button onClick={() => router.push('/scope')} className="w-full py-2.5 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-opacity text-xs flex items-center justify-center gap-2">
+              Continue to next site
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+            </button>
+            <button onClick={() => router.push('/')} className="w-full py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-opacity text-xs border border-gray-200">
+              Exit to Dashboard
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      {/* 
+        HIDDEN CERTIFICATE FOR GENERATION 
+        - A4 Portrait dimensions: 210mm x 297mm
+        - Pixel dimensions at 96 DPI: 794px x 1123px
+        - We position it off-screen to capture.
+      */}
+      <div style={{ position: "fixed", top: -9999, left: -9999 }}>
         <div
+          ref={certificateRef}
+          className="relative bg-white"
           style={{
-            display: "flex",
-            gap: "12px",
-            justifyContent: "center",
-            marginTop: "20px",
+            width: "794px",
+            height: "1123px",
+            overflow: "hidden",
           }}
         >
-          <button
-            type="button"
-            onClick={() => {
-              const currentParams = searchParams.toString();
-              const url = currentParams
-                ? `/scope/review?${currentParams}`
-                : "/scope/review";
-              router.push(url);
-            }}
-            style={{
-              padding: "12px 24px",
-              borderRadius: "8px",
-              border: "1px solid #000",
-              backgroundColor: "transparent",
-              color: "#000",
-              fontSize: "15px",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
-          >
-            Back to Review
-          </button>
+          {/* Border Background */}
+          <img
+            src="/certificate-assets/asset-4.jpg"
+            alt="Border"
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          />
 
-          <button
-            type="button"
-            onClick={handleDownloadCertificate}
-            disabled={isDownloading}
-            style={{
-              padding: "12px 24px",
-              borderRadius: "8px",
-              border: "none",
-              backgroundColor: isDownloading ? "#999999" : "#FF6B35",
-              color: "#FFFFFF",
-              fontSize: "15px",
-              fontWeight: "600",
-              cursor: isDownloading ? "not-allowed" : "pointer",
-              opacity: isDownloading ? 0.7 : 1,
-            }}
-          >
-            {isDownloading ? "Downloading..." : "Download Certificate"}
-          </button>
+          <div className="relative z-10 w-full h-full flex flex-col items-center pt-28 pb-24 px-24">
+
+            {/* Title Section */}
+            <div className="text-center mb-14">
+              <h1 className="text-3xl font-cinzel weight-500 line-height-1.6 letter-spacing-large text-[#1e3a3a] tracking-widest font-medium">
+                PLANET POSITIVE
+              </h1>
+
+              <h2 className="text-3xl  font-cinzel weight-500 line-height-1.6 letter-spacing-large text-[#1e3a3a] tracking-widest font-medium mt-2">
+                STEWARDSHIP RECOGNITION
+              </h2>
+
+              {/* Decoration */}
+              <div className="mt-6 flex justify-center">
+                <img
+                  src="/certificate-assets/asset-1.png"
+                  alt="Decoration"
+                  className="w-72 object-contain opacity-80"
+                />
+              </div>
+              {/* Awarded To */}
+              <p className="text-xl font-cormorant Garamond italic text-gray-600 mb-8">
+                This certificate is awarded to
+              </p>
+              {/* Facility Name */}
+              <h2 className="text-4xl font-cinzel font-bold text-[#1e3a3a] uppercase tracking-wide mb-12 text-center">
+                {data.facilityName}
+              </h2>
+              {/* Body Text */}
+              <div className="text-center max-w-2xl space-y-4 mb-12">
+                <p className="text-lg font-Cormorant Garamond style italic size-medium Line-height-relaxed text-gray-700 leading-relaxed italic">
+                  in recognition of leadership in environmental transparency through the
+                  proactive initiation of a Scope 2 emissions assessment for the reporting
+                  period <span className="font-semibold not-italic">FY{data.reportingYear}</span>{" "}
+                  conducted during
+                </p>
+
+                <p className="text-lg font-Cormorant Garamond font-bold text-[#1e3a3a]">
+                  PPTL Season 3, India’s first certified carbon-neutral sports event
+                </p>
+              </div>
+              {/* Quote */}
+              <p className="text-lg font-Cormorant Garamond Italic  text-gray-600 mb-16">
+                A foundational milestone toward accountable climate action.
+              </p>
+
+              {/* Seal */}
+              <div className="mb-10 flex justify-center">
+                <img
+                  src="/certificate-assets/asset-3.png"
+                  alt="Seal"
+                  className="w-36 h-36 object-contain"
+                />
+              </div>
+              {/* Certificate ID */}
+              <p className="text-xs font-Libre Baskerville text-gray-500 mb-16">
+                Certificate ID: {data.certificateId}
+              </p>
+
+              {/* Signatures / Logos */}
+              <div className="w-full flex justify-center items-end">
+                <img
+                  src="/certificate-assets/asset-2.png"
+                  alt="Signatories"
+                  className="w-full max-w-3xl object-contain h-24"
+                />
+              </div>
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
         </div>
       </div>
+
+    </>
+  );
+}
+
+export default function ScopeDashboardPage() {
+  return (
+    <main className="h-screen flex flex-col bg-gray-50 p-4 md:p-6 overflow-hidden font-sans text-gray-800">
+      <Suspense fallback={<div>Loading...</div>}>
+        <CertificateContent />
+      </Suspense>
     </main>
   );
 }

@@ -89,74 +89,41 @@ export async function sendApprovalEmail(userEmail: string, submission: Scope2Sub
     const transporter = await getTransporter();
     const facilityName = (submission.data.facilityName as string) || 'Unknown Facility';
 
-    // Generate PDF Certificate
-    const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4',
+    // Construct Dashboard URL with params
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const params = new URLSearchParams({
+        id: submission.id,
+        facilityName: facilityName,
+        state: (submission.data.state as string) || '',
+        siteCount: (submission.data.siteCount as string) || '',
+        reportingYear: (submission.data.reportingYear as string) || '',
+        reportingPeriod: (submission.data.reportingPeriod as string) || '',
+        scopeBoundaryNotes: (submission.data.scopeBoundaryNotes as string) || '',
+        renewableElectricity: (submission.data.renewableElectricity as string) || '',
+        renewableEnergyConsumption: (submission.data.renewableEnergyConsumption as string) || '',
+        onsiteExportedKwh: (submission.data.onsiteExportedKwh as string) || '',
+        energyCategory: (submission.data.energyCategory as string) || '',
     });
 
-    // Valid A4 Landscape width is 297mm, height is 210mm. Center is around 148.5mm.
-
-    // Title
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(40);
-    doc.setTextColor(41, 128, 185); // Blue color
-    doc.text('Certificate of Compliance', 148.5, 60, { align: 'center' });
-
-    // Subtitle
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(20);
-    doc.setTextColor(0, 0, 0); // Black
-    doc.text('This certifies that', 148.5, 85, { align: 'center' });
-
-    // Facility Name
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(30);
-    doc.text(facilityName, 148.5, 105, { align: 'center' });
-
-    // Description
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(16);
-    doc.text('Has successfully completed the Scope 2 Assessment', 148.5, 125, { align: 'center' });
-
-    // Date
-    const dateStr = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
-    doc.text(`Approved on: ${dateStr}`, 148.5, 145, { align: 'center' });
-
-    // Footer
-    doc.setFontSize(12);
-    doc.setTextColor(100, 100, 100); // Gray
-    doc.text('Verified by Sustally Application System', 148.5, 180, { align: 'center' });
-
-    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+    const dashboardLink = `${baseUrl}/scope/certificate?${params.toString()}`;
 
     const mailOptions = {
         from: '"Sustally Team" <no-reply@sustally.com>',
         to: userEmail,
-        subject: 'Scope 2 Assessment Approved - Certificate Enclosed',
+        subject: 'Scope 2 Assessment Approved - View Dashboard',
         html: `
       <h1>Congratulations!</h1>
       <p>Your Scope 2 assessment for <strong>${facilityName}</strong> has been approved.</p>
-      <p>Please find attached your compliance certificate.</p>
+      <p>You can now view your emissions dashboard and download your certificate using the link below:</p>
       <br />
+      <a href="${dashboardLink}" style="padding: 12px 24px; background-color: #3D5F2B; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View Dashboard</a>
+      <br /><br />
       <p>Best regards,<br/>Sustally Team</p>
     `,
-        attachments: [
-            {
-                filename: 'Certificate.pdf',
-                content: pdfBuffer,
-                contentType: 'application/pdf',
-            },
-        ],
     };
 
     try {
-        console.log(`[Email] Sending approval email to ${userEmail}`);
+        console.log(`[Email] Sending approval email to ${userEmail} with link ${dashboardLink}`);
         const info = await transporter.sendMail(mailOptions);
         console.log('Approval email sent to:', userEmail, 'ID:', info.messageId);
         if (!process.env.SMTP_HOST) {

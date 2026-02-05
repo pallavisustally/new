@@ -14,13 +14,44 @@ const Scope2Applications: CollectionConfig = {
   },
   hooks: {
     afterChange: [
-      async (args: any) => {
+      async ({ doc, previousDoc, operation }: any) => {
         // Only load and run the hook on the server
-        if (typeof window === 'undefined') {
-          const { afterChangeHook } = await import('./Scope2Hooks');
-          return afterChangeHook(args);
+        if (typeof window === 'undefined' && operation === 'update') {
+          try {
+            const { sendApprovalEmail, sendRejectionEmail } = await import('../lib/email');
+
+            const submission = {
+              id: doc.id,
+              status: doc.status,
+              submittedAt: doc.createdAt,
+              data: doc,
+            };
+
+            const userEmail = doc.email || doc.userEmail;
+
+            if (doc.status === "APPROVED" && previousDoc.status !== "APPROVED") {
+              console.log(`[Scope2] Approving submission ${doc.id}. Email: ${userEmail}`);
+              if (userEmail) {
+                await sendApprovalEmail(userEmail, submission);
+              } else {
+                console.error(`[Scope2] Cannot send approval email. No email found for submission ${doc.id}`);
+              }
+            }
+
+            if (doc.status === "REJECTED" && previousDoc.status !== "REJECTED") {
+              const reason = doc.rejectionReason;
+              console.log(`[Scope2] Rejecting submission ${doc.id}. Email: ${userEmail}, Reason: ${reason}`);
+              if (userEmail) {
+                await sendRejectionEmail(userEmail, submission, reason);
+              } else {
+                console.error(`[Scope2] Cannot send rejection email. No email found for submission ${doc.id}`);
+              }
+            }
+          } catch (error) {
+            console.error('[Scope2Applications] Error in afterChange hook:', error);
+          }
         }
-        return args.doc;
+        return doc;
       }
     ],
   },
@@ -32,14 +63,7 @@ const Scope2Applications: CollectionConfig = {
         position: "sidebar",
       },
     },
-    {
-      name: "rejectionReason",
-      type: "textarea",
-      admin: {
-        position: "sidebar",
-        condition: (data) => data?.status === "REJECTED",
-      }
-    },
+
     // Page 1 - Box 1
     {
       name: "state",
@@ -66,6 +90,13 @@ const Scope2Applications: CollectionConfig = {
       ],
       defaultValue: "PENDING",
       required: true,
+    },
+    {
+      name: "rejectionReason",
+      type: "textarea",
+      admin: {
+        condition: (data, siblingData) => siblingData?.status === "REJECTED",
+      },
     },
     // Page 1 - Box 2
     {

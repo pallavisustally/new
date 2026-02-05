@@ -34,7 +34,7 @@ export const POST = async (request: Request) => {
       throw new APIError('Email address is required', 400)
     }
 
-    // // Extract review details from request
+    // Extract review details from request
     // const renewableEnergyStr = data.renewableEnergy || '0';
     // const totalEnergyStr = data.totalEnergy || '0';
 
@@ -63,6 +63,8 @@ export const POST = async (request: Request) => {
       // renewableEnergy: renewableEnergyStr || '-',
       // totalEnergy: totalEnergyStr || '-',
       // renewablePercentage: `${renewablePercentage}%`,
+      assessmentLink: data.assessmentLink || '#',
+      expireTime: data.expireTime || 'Standard expiration applies'
     }
 
     // Create email HTML content with all review details
@@ -115,6 +117,27 @@ export const POST = async (request: Request) => {
               border-radius: 0 0 8px 8px;
               font-size: 12px;
             }
+            .action-button {
+              display: inline-block;
+              background-color: #4CAF50;
+              color: white;
+              padding: 14px 28px;
+              text-decoration: none;
+              border-radius: 4px;
+              font-weight: bold;
+              margin: 20px 0;
+              text-align: center;
+            }
+            .action-container {
+              text-align: center;
+              padding: 20px 0;
+              border-bottom: 1px solid #e0e0e0;
+            }
+            .expire-info {
+              font-size: 12px;
+              color: #d9534f;
+              margin-top: 5px;
+            }
           </style>
         </head>
         <body>
@@ -123,6 +146,13 @@ export const POST = async (request: Request) => {
               <h1>Slot Booking Details</h1>
             </div>
             <div class="content">
+              
+              <div class="action-container">
+                <p>Your assessment slot is confirmed. Please use the link below to access your assessment.</p>
+                <a href="${reviewDetails.assessmentLink}" class="action-button">Start Assessment</a>
+                <p class="expire-info">Link Valid Until: ${reviewDetails.expireTime}</p>
+              </div>
+
               <h2>Application Information</h2>
               <div class="detail-row">
                 <span class="detail-label">Name:</span>
@@ -181,6 +211,10 @@ export const POST = async (request: Request) => {
     const emailText = `
 Review Details
 
+Your assessment slot is confirmed.
+Access Link: ${reviewDetails.assessmentLink}
+Expires: ${reviewDetails.expireTime}
+
 Application Information:
 
 Name: ${reviewDetails.name}
@@ -195,7 +229,7 @@ Country: ${reviewDetails.country}
 
 
 
-Scope 2 Assignment:
+Scope 2 Assessment:
 
 Assignment Date: ${reviewDetails.assignmentDate}
 Assignment Slot: ${reviewDetails.assignmentSlot}

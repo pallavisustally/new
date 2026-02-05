@@ -176,6 +176,8 @@ export interface Application {
   sector: string;
   natureOfBusiness: string;
   country: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -186,11 +188,11 @@ export interface Application {
 export interface Scope2Application {
   id: string;
   email?: string | null;
-  rejectionReason?: string | null;
   state: string;
   siteCount: string;
   facilityName: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string | null;
   renewableProcurement: 'Yes' | 'No';
   onsiteExportedKwh: string;
   netMeteringApplicable: 'Yes' | 'No';
@@ -345,6 +347,8 @@ export interface ApplicationsSelect<T extends boolean = true> {
   sector?: T;
   natureOfBusiness?: T;
   country?: T;
+  status?: T;
+  rejectionReason?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -354,11 +358,11 @@ export interface ApplicationsSelect<T extends boolean = true> {
  */
 export interface Scope2ApplicationsSelect<T extends boolean = true> {
   email?: T;
-  rejectionReason?: T;
   state?: T;
   siteCount?: T;
   facilityName?: T;
   status?: T;
+  rejectionReason?: T;
   renewableProcurement?: T;
   onsiteExportedKwh?: T;
   netMeteringApplicable?: T;

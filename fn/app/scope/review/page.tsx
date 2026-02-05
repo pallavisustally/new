@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -99,7 +99,7 @@ const DetailGrid = ({ children }: { children: React.ReactNode }) => (
 );
 
 
-export default function ScopeReviewPage() {
+function ScopeReviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -354,5 +354,13 @@ export default function ScopeReviewPage() {
         />
       )}
     </main>
+  );
+}
+
+export default function ScopeReviewPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ScopeReviewContent />
+    </Suspense>
   );
 }

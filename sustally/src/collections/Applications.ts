@@ -1,4 +1,4 @@
-import { CollectionConfig } from "payload/types";
+import type { CollectionConfig } from "payload";
 
 const Applications: CollectionConfig = {
   slug: "applications",
@@ -44,6 +44,24 @@ const Applications: CollectionConfig = {
       name: "country",
       type: "text",
       required: true,
+    },
+    {
+      name: "status",
+      type: "select",
+      options: [
+        { label: "Pending", value: "PENDING" },
+        { label: "Approved", value: "APPROVED" },
+        { label: "Rejected", value: "REJECTED" },
+      ],
+      defaultValue: "PENDING",
+      required: true,
+    },
+    {
+      name: "rejectionReason",
+      type: "textarea",
+      admin: {
+        condition: (data, siblingData) => siblingData?.status === "REJECTED",
+      },
     },
   ],
 };

@@ -1,11 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 type YesNo = "Yes" | "No" | "";
+
+type MonthlyEntry = {
+  id: string;
+  month: string;
+  electricityPurchased: string;
+  dataSourceType: string;
+  energyConsumption: string;
+  spend: string;
+};
 
 type FormDataType = {
   // User Identity (Passed from previous steps)
@@ -41,7 +50,9 @@ type FormDataType = {
   // Page 2 - Box 1 (Energy Activity)
   energyActivityInput: "Monthly" | "Yearly" | "";
   energyCategory: string;
-  unitConsumption: string;
+  electricityPurchased: string;
+  dataSourceType: string;
+  energyConsumption: string;
   spendAmount: string;
   trackingType: "Unit consumption" | "Spend amount" | "Both" | "";
   energySupportingEvidenceFile: File | null;
@@ -53,9 +64,12 @@ type FormDataType = {
   renewableEnergyConsumption: string;
   renewableSupportingEvidenceFile: File | null;
   renewableEnergySourceDescription: string;
+
+  // Monthly Data
+  monthlyData: MonthlyEntry[];
 };
 
-export default function TemplatePage() {
+function TemplateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [page, setPage] = useState<1 | 2>(1);
@@ -89,12 +103,14 @@ export default function TemplatePage() {
 
     scopeBoundaryNotes: "",
 
-    // Page 2 - Box 1
+    // Page 2
     energyActivityInput: "Monthly",
-    energyCategory: "",
-    unitConsumption: "",
+    energyCategory: "Grid Electricity", // Set to default disabled value
+    electricityPurchased: "",
+    dataSourceType: "",
+    energyConsumption: "",
     spendAmount: "",
-    trackingType: "",
+    trackingType: "Unit consumption",
     energySupportingEvidenceFile: null,
     energySourceDescription: "",
 
@@ -104,6 +120,9 @@ export default function TemplatePage() {
     renewableEnergyConsumption: "",
     renewableSupportingEvidenceFile: null,
     renewableEnergySourceDescription: "",
+
+    // Initialize with one empty row
+    monthlyData: [{ id: "1", month: "", electricityPurchased: "", dataSourceType: "", energyConsumption: "", spend: "" }],
   });
 
   const handleChange = (
@@ -112,7 +131,23 @@ export default function TemplatePage() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    setFormData((prev) => {
+      const updates: Partial<FormDataType> = { [name]: value };
+
+      // Auto-calculate Energy Consumption (GJ) if Electricity Purchased (kWh) changes
+      // Conversion: 1 kWh = 0.0036 GJ
+      if (name === "electricityPurchased") {
+        const kwh = parseFloat(value);
+        if (!isNaN(kwh)) {
+          updates.energyConsumption = (kwh * 0.0036).toFixed(4);
+        } else {
+          updates.energyConsumption = "";
+        }
+      }
+
+      return { ...prev, ...updates } as FormDataType;
+    });
   };
 
   const handleRadioChange = (name: keyof FormDataType, value: any) => {
@@ -149,7 +184,9 @@ export default function TemplatePage() {
       if (!formData.trackingType) newErrors.trackingType = "Required";
 
       if (formData.trackingType === "Unit consumption" || formData.trackingType === "Both") {
-        if (!formData.unitConsumption?.trim()) newErrors.unitConsumption = "Required";
+        if (!formData.electricityPurchased?.trim()) newErrors.electricityPurchased = "Required";
+        if (!formData.dataSourceType?.trim()) newErrors.dataSourceType = "Required";
+        if (!formData.energyConsumption?.trim()) newErrors.energyConsumption = "Required";
       }
       if (formData.trackingType === "Spend amount" || formData.trackingType === "Both") {
         if (!formData.spendAmount?.trim()) newErrors.spendAmount = "Required";
@@ -166,6 +203,79 @@ export default function TemplatePage() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAddRow = () => {
+    setFormData((prev) => ({
+      ...prev,
+      monthlyData: [
+        ...prev.monthlyData,
+        { id: Math.random().toString(36).substr(2, 9), month: "", electricityPurchased: "", dataSourceType: "", energyConsumption: "", spend: "" },
+      ],
+    }));
+  };
+
+  const handleDeleteRow = (id: string) => {
+    if (formData.monthlyData.length <= 1) return; // Prevent deleting the last row
+    setFormData((prev) => {
+      const newData = prev.monthlyData.filter((row) => row.id !== id);
+      const { totalConsumption, totalSpend } = calculateTotals(newData);
+      return {
+        ...prev,
+        monthlyData: newData,
+        electricityPurchased: totalConsumption,
+        spendAmount: totalSpend,
+      };
+    });
+  };
+
+  const calculateTotals = (data: MonthlyEntry[]) => {
+    let totalElectricity = 0;
+    let totalSpend = 0;
+
+    data.forEach((row) => {
+      const elec = parseFloat(row.electricityPurchased) || 0;
+      const spend = parseFloat(row.spend) || 0;
+      totalElectricity += elec;
+      totalSpend += spend;
+    });
+
+    return {
+      totalConsumption: totalElectricity > 0 ? totalElectricity.toString() : "",
+      totalSpend: totalSpend > 0 ? totalSpend.toString() : "",
+    };
+  };
+
+  const handleRowChange = (id: string, field: keyof MonthlyEntry, value: string) => {
+    setFormData((prev) => {
+      const newData = prev.monthlyData.map((row) => {
+        if (row.id !== id) return row;
+
+        const updatedRow = { ...row, [field]: value };
+
+        // Auto-calculate Energy Consumption (GJ) if Electricity Purchased (kWh) changes
+        if (field === "electricityPurchased") {
+          const kwh = parseFloat(value);
+          if (!isNaN(kwh)) {
+            updatedRow.energyConsumption = (kwh * 0.0036).toFixed(4);
+          } else {
+            updatedRow.energyConsumption = "";
+          }
+        }
+
+        return updatedRow;
+      });
+
+      // Auto-calculate totals
+      const { totalConsumption, totalSpend } = calculateTotals(newData);
+
+      return {
+        ...prev,
+        monthlyData: newData,
+        electricityPurchased: totalConsumption,
+        spendAmount: totalSpend,
+      };
+    });
   };
 
   const handleNext = () => {
@@ -188,6 +298,8 @@ export default function TemplatePage() {
       Object.entries(formData).forEach(([key, value]) => {
         if (value instanceof File) {
           formDataToSend.append(key, value);
+        } else if (key === "monthlyData") {
+          formDataToSend.append(key, JSON.stringify(value));
         } else if (value !== null && value !== undefined) {
           // Handle Date objects explicitly if needed, but String() usually works for ISO if not careful.
           // Here reportingYear is a Date. String(date) gives full text. toISOString is better for machines.
@@ -708,39 +820,189 @@ export default function TemplatePage() {
                     </div>
                   </div>
 
-                  {/* Dynamic Inputs based on Tracking Type */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {(formData.trackingType === "Unit consumption" || formData.trackingType === "Both") && (
-                      <div className="col-span-1">
-                        <label className="block text-xs font-bold text-gray-700 mb-2">
-                          Unit Consumption (kWh) <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="unitConsumption"
-                          value={formData.unitConsumption || ""}
-                          onChange={handleChange}
-                          placeholder="Enter kWh"
-                          className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                        {errors.unitConsumption && <p className="text-red-500 text-xs mt-1">{errors.unitConsumption}</p>}
+                  {/* Dynamic Inputs based on Energy Activity Input */}
+                  <div className="mt-4">
+                    {formData.energyActivityInput === "Monthly" ? (
+                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table className="w-full text-xs text-left text-gray-700">
+                          <thead className="text-[10px] text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                            <tr>
+                              <th className="px-3 py-2 font-bold w-1/4">Month</th>
+                              {(formData.trackingType === "Unit consumption" || formData.trackingType === "Both") && (
+                                <>
+                                  <th className="px-3 py-2 font-bold min-w-[120px]">Electricity purchased (kWh)</th>
+                                  <th className="px-3 py-2 font-bold min-w-[120px]">Data source type</th>
+                                  <th className="px-3 py-2 font-bold min-w-[120px]">Energy Consumption (GJ)</th>
+                                </>
+                              )}
+                              {(formData.trackingType === "Spend amount" || formData.trackingType === "Both") && (
+                                <th className="px-3 py-2 font-bold">Spend Amount</th>
+                              )}
+                              <th className="px-3 py-2 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {formData.monthlyData.map((row, index) => (
+                              <tr key={row.id} className="border-b border-gray-100 last:border-none group hover:bg-gray-50/50">
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="month"
+                                    value={row.month}
+                                    onChange={(e) => handleRowChange(row.id, "month", e.target.value)}
+                                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs text-gray-700 placeholder-gray-400"
+                                    placeholder="Select month"
+                                  />
+                                </td>
+                                {(formData.trackingType === "Unit consumption" || formData.trackingType === "Both") && (
+                                  <>
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="number"
+                                        value={row.electricityPurchased}
+                                        onChange={(e) => handleRowChange(row.id, "electricityPurchased", e.target.value)}
+                                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs text-gray-700 placeholder-gray-400"
+                                        placeholder="0"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <select
+                                        value={row.dataSourceType}
+                                        onChange={(e) => handleRowChange(row.id, "dataSourceType", e.target.value)}
+                                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs text-gray-700 placeholder-gray-400 appearance-none"
+                                      >
+                                        <option value="">Select...</option>
+                                        <option value="Invoice">Invoice</option>
+                                        <option value="Meter Reading">Meter Reading</option>
+                                        <option value="Estimate">Estimate</option>
+                                        <option value="Other">Other</option>
+                                      </select>
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="number"
+                                        value={row.energyConsumption}
+                                        onChange={(e) => handleRowChange(row.id, "energyConsumption", e.target.value)}
+                                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs text-gray-700 placeholder-gray-400"
+                                        placeholder="0"
+                                      />
+                                    </td>
+                                  </>
+                                )}
+                                {(formData.trackingType === "Spend amount" || formData.trackingType === "Both") && (
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="number"
+                                      value={row.spend}
+                                      onChange={(e) => handleRowChange(row.id, "spend", e.target.value)}
+                                      className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs text-gray-700 placeholder-gray-400"
+                                      placeholder="0"
+                                    />
+                                  </td>
+                                )}
+                                <td className="px-2 py-2 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRow(row.id)}
+                                    className="p-1 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Delete row"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div className="bg-gray-50 px-3 py-2 border-t border-gray-200">
+                          <button
+                            type="button"
+                            onClick={handleAddRow}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Month
+                          </button>
+                        </div>
                       </div>
-                    )}
+                    ) : (
+                      // EXISTING YEARLY INPUTS
+                      <div className="grid grid-cols-2 gap-4">
+                        {(formData.trackingType === "Unit consumption" || formData.trackingType === "Both") && (
+                          <div className="col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Electricity Purchased */}
+                            <div>
+                              <label className="block text-xs font-bold text-gray-700 mb-2">
+                                Electricity purchased <span className="text-red-500">*</span>
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  name="electricityPurchased"
+                                  value={formData.electricityPurchased || ""}
+                                  onChange={handleChange}
+                                  placeholder="Enter value"
+                                  className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                                <span className="absolute right-3 top-1.5 text-[10px] text-gray-400">kWh</span>
+                              </div>
+                            </div>
 
-                    {(formData.trackingType === "Spend amount" || formData.trackingType === "Both") && (
-                      <div className="col-span-1">
-                        <label className="block text-xs font-bold text-gray-700 mb-2">
-                          Spend Amount <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="spendAmount"
-                          value={formData.spendAmount || ""}
-                          onChange={handleChange}
-                          placeholder="Enter amount"
-                          className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                        {errors.spendAmount && <p className="text-red-500 text-xs mt-1">{errors.spendAmount}</p>}
+                            {/* Data Source Type */}
+                            <div>
+                              <label className="block text-xs font-bold text-gray-700 mb-2">
+                                Data source type <span className="text-red-500">*</span>
+                              </label>
+                              <select
+                                name="dataSourceType"
+                                value={formData.dataSourceType || ""}
+                                onChange={handleChange}
+                                className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                              >
+                                <option value="">Select data source...</option>
+                                <option value="Invoice">Invoice</option>
+                                <option value="Meter Reading">Meter Reading</option>
+                                <option value="Estimate">Estimate</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+
+                            {/* Energy Consumption */}
+                            <div>
+                              <label className="block text-xs font-bold text-gray-700 mb-2">
+                                Energy Consumption <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                name="energyConsumption"
+                                value={formData.energyConsumption || ""}
+                                onChange={handleChange}
+                                placeholder="Enter value"
+                                className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {(formData.trackingType === "Spend amount" || formData.trackingType === "Both") && (
+                          <div className="col-span-1">
+                            <label className="block text-xs font-bold text-gray-700 mb-2">
+                              Spend Amount <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              name="spendAmount"
+                              value={formData.spendAmount || ""}
+                              onChange={handleChange}
+                              placeholder="Enter amount"
+                              className="w-full px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                            {errors.spendAmount && <p className="text-red-500 text-xs mt-1">{errors.spendAmount}</p>}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -938,5 +1200,13 @@ export default function TemplatePage() {
         </form>
       </div >
     </div >
+  );
+}
+
+export default function TemplatePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TemplateContent />
+    </Suspense>
   );
 }
