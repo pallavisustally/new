@@ -103,6 +103,13 @@ export async function sendApprovalEmail(userEmail: string, submission: Scope2Sub
         renewableEnergyConsumption: (submission.data.renewableEnergyConsumption as string) || '',
         onsiteExportedKwh: (submission.data.onsiteExportedKwh as string) || '',
         energyCategory: (submission.data.energyCategory as string) || '',
+        // Calculated fields
+        gridEmissionFactor: String(submission.data.gridEmissionFactor || ''),
+        locationBasedEmissions: String(submission.data.locationBasedEmissions || ''),
+        marketBasedEmissions: String(submission.data.marketBasedEmissions || ''),
+        energyGrid_kJ: String(submission.data.energyGrid_kJ || ''),
+        energyRenew_kJ: String(submission.data.energyRenew_kJ || ''),
+        energyTotal_kJ: String(submission.data.energyTotal_kJ || ''),
     });
 
     const dashboardLink = `${baseUrl}/scope/certificate?${params.toString()}`;

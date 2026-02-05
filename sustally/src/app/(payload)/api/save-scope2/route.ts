@@ -110,8 +110,14 @@ export const POST = async (request: Request) => {
       renewableElectricity: data.renewableElectricity || '',
       renewableEnergyConsumption: data.renewableEnergyConsumption || '',
       // Assign uploaded Media IDs
-      renewableSupportingEvidenceFile: renewableEvidenceId,
       renewableEnergySourceDescription: data.renewableEnergySourceDescription || '',
+      // Calculated Fields
+      gridEmissionFactor: parseFloat(String(data.gridEmissionFactor)) || null,
+      locationBasedEmissions: parseFloat(String(data.locationBasedEmissions)) || null,
+      marketBasedEmissions: parseFloat(String(data.marketBasedEmissions)) || null,
+      energyGrid_kJ: parseFloat(String(data.energyGrid_kJ)) || null,
+      energyRenew_kJ: parseFloat(String(data.energyRenew_kJ)) || null,
+      energyTotal_kJ: parseFloat(String(data.energyTotal_kJ)) || null,
       status: 'PENDING' as 'PENDING',
     }
 

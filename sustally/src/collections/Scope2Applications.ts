@@ -217,6 +217,31 @@ const Scope2Applications: CollectionConfig = {
       type: "textarea",
       required: false,
     },
+    // Calculated Fields
+    {
+      name: "gridEmissionFactor",
+      type: "number",
+    },
+    {
+      name: "locationBasedEmissions",
+      type: "number",
+    },
+    {
+      name: "marketBasedEmissions",
+      type: "number",
+    },
+    {
+      name: "energyGrid_kJ",
+      type: "number",
+    },
+    {
+      name: "energyRenew_kJ",
+      type: "number",
+    },
+    {
+      name: "energyTotal_kJ",
+      type: "number",
+    },
   ],
 };
 

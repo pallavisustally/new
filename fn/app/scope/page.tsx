@@ -65,6 +65,14 @@ type FormDataType = {
   renewableSupportingEvidenceFile: File | null;
   renewableEnergySourceDescription: string;
 
+  // Calculated fields
+  gridEmissionFactor?: number;
+  locationBasedEmissions?: number;
+  marketBasedEmissions?: number;
+  energyGrid_kJ?: number;
+  energyRenew_kJ?: number;
+  energyTotal_kJ?: number;
+
   // Monthly Data
   monthlyData: MonthlyEntry[];
 };
@@ -121,9 +129,79 @@ function TemplateContent() {
     renewableSupportingEvidenceFile: null,
     renewableEnergySourceDescription: "",
 
+    // Calculated fields
+    gridEmissionFactor: 0,
+    locationBasedEmissions: 0,
+    marketBasedEmissions: 0,
+    energyGrid_kJ: 0,
+    energyRenew_kJ: 0,
+    energyTotal_kJ: 0,
+
     // Initialize with one empty row
     monthlyData: [{ id: "1", month: "", electricityPurchased: "", dataSourceType: "", energyConsumption: "", spend: "" }],
   });
+
+  // Year-wise Grid Emission Factors (kg CO2e/kWh)
+  const GRID_EMISSION_FACTORS: Record<string, number> = {
+    "2013-14": 0.774,
+    "2014-15": 0.779,
+    "2015-16": 0.774,
+    "2016-17": 0.770,
+    "2017-18": 0.754,
+    "2018-19": 0.744,
+    "2019-20": 0.713,
+    "2020-21": 0.703,
+    "2021-22": 0.715,
+    "2022-23": 0.716,
+    "2023-24": 0.722,
+    "2024-25": 0.710,
+  };
+
+  // Helper to map Year Y to Financial Year String
+  const getFinancialYear = (date: Date | null): string => {
+    if (!date) return "";
+    const year = date.getFullYear();
+    const shortNextYear = (year + 1) % 100;
+    return `${year}-${shortNextYear}`; // e.g. "2023-24"
+  };
+
+  // Helper function to perform calculations
+  const calculateScope2 = (
+    electricityPurchased: string,
+    renewableElectricity: string,
+    reportingYear: Date | null
+  ) => {
+    const B = parseFloat(electricityPurchased) || 0; // Grid electricity (kWh)
+    const C = parseFloat(renewableElectricity) || 0; // Renewable electricity (kWh)
+    const A = B + C; // Total electricity
+
+    const yearStr = getFinancialYear(reportingYear);
+    // Use the latest factor if year is not found (e.g. future years)
+    const EF_grid = GRID_EMISSION_FACTORS[yearStr] || GRID_EMISSION_FACTORS["2024-25"] || 0.710;
+    const EF_renew = 0; // Assuming renewable EF is 0
+
+    // Energy calculations (kJ)
+    const Energy_grid_kJ = B * 3600;
+    const Energy_renew_kJ = C * 3600;
+    const Energy_total_kJ = A * 3600;
+
+    // Location-Based Emissions (tonnes)
+    // LB_t = (A * EF_grid) / 1000
+    const LB_t = (A * EF_grid) / 1000;
+
+    // Market-Based Emissions (tonnes)
+    // MB_total = ((C * EF_renew) + (B * EF_grid)) / 1000
+    const MB_total = ((C * EF_renew) + (B * EF_grid)) / 1000;
+
+    return {
+      gridEmissionFactor: EF_grid,
+      energyGrid_kJ: Energy_grid_kJ,
+      energyRenew_kJ: Energy_renew_kJ,
+      energyTotal_kJ: Energy_total_kJ,
+      locationBasedEmissions: LB_t,
+      marketBasedEmissions: MB_total,
+    };
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -146,7 +224,32 @@ function TemplateContent() {
         }
       }
 
-      return { ...prev, ...updates } as FormDataType;
+      // Auto-calculate Renewable Energy Consumption (GJ) if Renewable Electricity (kWh) changes
+      if (name === "renewableElectricity") {
+        const kwh = parseFloat(value);
+        if (!isNaN(kwh)) {
+          updates.renewableEnergyConsumption = (kwh * 0.0036).toFixed(4);
+        } else {
+          updates.renewableEnergyConsumption = "";
+        }
+      }
+
+      // Trigger Scope 2 Calculations
+      // We need the *latest* values of inputs involved in calculation.
+      // Since state updates are batched, we use the 'value' for the field currently being changed,
+      // and 'prev' values for others.
+      let currentElec = prev.electricityPurchased;
+      let currentRenew = prev.renewableElectricity;
+      let currentYear = prev.reportingYear;
+
+      if (name === "electricityPurchased") currentElec = value;
+      if (name === "renewableElectricity") currentRenew = value;
+      // Note: reportingYear is handled in DatePicker onChange, not here usually, 
+      // but let's ensure we cover it if it were an input.
+
+      const results = calculateScope2(currentElec, currentRenew, currentYear);
+
+      return { ...prev, ...updates, ...results } as FormDataType;
     });
   };
 
@@ -614,7 +717,15 @@ function TemplateContent() {
                       <DatePicker
                         selected={formData.reportingYear}
                         onChange={(date: Date | null) =>
-                          setFormData((prev) => ({ ...prev, reportingYear: date }))
+                          setFormData((prev) => {
+                            const newYear = date;
+                            // Calculate with new year and current inputs
+                            // Note: calculateScope2 needs to be in scope. It is defined above, inside component.
+                            // We need to make sure we have access to it or duplicated logic.
+                            // Since calculateScope2 is inside TemplateContent, we are good.
+                            const results = calculateScope2(prev.electricityPurchased, prev.renewableElectricity, newYear);
+                            return { ...prev, reportingYear: date, ...results };
+                          })
                         }
                         showYearPicker
                         dateFormat="yyyy"
@@ -1148,6 +1259,9 @@ function TemplateContent() {
                   </div>
                 </div>
               </section>
+              {/* Calculated Results Display - Output Only - Hidden as per request */}
+              {/* Calculations run in background */}
+
             </div>
           )}
 

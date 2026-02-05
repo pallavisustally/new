@@ -210,6 +210,12 @@ export interface Scope2Application {
   renewableEnergyConsumption?: string | null;
   renewableSupportingEvidenceFile?: (string | null) | Media;
   renewableEnergySourceDescription?: string | null;
+  gridEmissionFactor?: number | null;
+  locationBasedEmissions?: number | null;
+  marketBasedEmissions?: number | null;
+  energyGrid_kJ?: number | null;
+  energyRenew_kJ?: number | null;
+  energyTotal_kJ?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -380,6 +386,12 @@ export interface Scope2ApplicationsSelect<T extends boolean = true> {
   renewableEnergyConsumption?: T;
   renewableSupportingEvidenceFile?: T;
   renewableEnergySourceDescription?: T;
+  gridEmissionFactor?: T;
+  locationBasedEmissions?: T;
+  marketBasedEmissions?: T;
+  energyGrid_kJ?: T;
+  energyRenew_kJ?: T;
+  energyTotal_kJ?: T;
   updatedAt?: T;
   createdAt?: T;
 }
