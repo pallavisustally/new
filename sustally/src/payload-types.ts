@@ -189,6 +189,7 @@ export interface Scope2Application {
   id: string;
   email?: string | null;
   state: string;
+  utilityProvider?: string | null;
   siteCount: string;
   facilityName: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -365,6 +366,7 @@ export interface ApplicationsSelect<T extends boolean = true> {
 export interface Scope2ApplicationsSelect<T extends boolean = true> {
   email?: T;
   state?: T;
+  utilityProvider?: T;
   siteCount?: T;
   facilityName?: T;
   status?: T;

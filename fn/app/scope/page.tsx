@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { TARIFF_DATA, TariffRate } from "../lib/electricityTariffData";
 
 type YesNo = "Yes" | "No" | "";
 
@@ -25,6 +26,7 @@ type FormDataType = {
 
   // Page 1 - Box 1
   state: string;
+  utilityProvider: string;
   siteCount: string;
   facilityName: string;
 
@@ -91,6 +93,7 @@ function TemplateContent() {
 
     // Page 1
     state: "",
+    utilityProvider: "",
     siteCount: (() => {
       const count = searchParams.get("siteCount");
       const number = searchParams.get("siteCountNumber");
@@ -213,7 +216,38 @@ function TemplateContent() {
     setFormData((prev) => {
       const updates: Partial<FormDataType> = { [name]: value };
 
-      // Auto-calculate Energy Consumption (GJ) if Electricity Purchased (kWh) changes
+      // Helper to get Price
+      const getPrice = (s: string, u: string): number | null => {
+        if (!s || !TARIFF_DATA[s]) return null;
+        const data = TARIFF_DATA[s];
+        if ("p" in data) return (data as TariffRate).p;
+        if (u && data[u as keyof typeof data]) return (data[u as keyof typeof data] as TariffRate).p;
+        return null;
+      };
+
+      // Reset utility provider if state changes
+      if (name === "state") {
+        updates.utilityProvider = "";
+        // If the new state has only one option (no sub-utilities), we might want to conceptually select it, 
+        // but our logic handles "p" in data directly.
+      }
+
+      // Auto-calculate Consumption from Spend
+      if (name === "spendAmount") {
+        const spend = parseFloat(value);
+        const stateToUse = prev.state; // State is on Page 1, so stable here
+        const utilityToUse = prev.utilityProvider;
+        const price = getPrice(stateToUse, utilityToUse);
+
+        if (!isNaN(spend) && price) {
+          const consumption = spend / price;
+          updates.electricityPurchased = consumption.toFixed(2);
+          // Also update energy cons (GJ)
+          updates.energyConsumption = (consumption * 0.0036).toFixed(4);
+        }
+      }
+
+      // Auto-calculate Energy Consumption (GJ) if Electricity Purchased (kWh) changes (and user manually enters it)
       // Conversion: 1 kWh = 0.0036 GJ
       if (name === "electricityPurchased") {
         const kwh = parseFloat(value);
@@ -241,11 +275,15 @@ function TemplateContent() {
       let currentElec = prev.electricityPurchased;
       let currentRenew = prev.renewableElectricity;
       let currentYear = prev.reportingYear;
+      // let currentState = prev.state;
+      // let currentUtility = prev.utilityProvider;
 
       if (name === "electricityPurchased") currentElec = value;
       if (name === "renewableElectricity") currentRenew = value;
-      // Note: reportingYear is handled in DatePicker onChange, not here usually, 
-      // but let's ensure we cover it if it were an input.
+      // if (name === "reportingYear") ... (handled in DatePicker)
+      // if (name === "state") currentState = value;
+      // if (name === "utilityProvider") currentUtility = value;
+      if (name === "spendAmount" && updates.electricityPurchased) currentElec = updates.electricityPurchased;
 
       const results = calculateScope2(currentElec, currentRenew, currentYear);
 
@@ -266,6 +304,12 @@ function TemplateContent() {
     // Page 1 validations
     if (page === 1) {
       if (!formData.state?.trim()) newErrors.state = "State is required";
+
+      // Utility check
+      if (formData.state && TARIFF_DATA[formData.state] && !("p" in TARIFF_DATA[formData.state])) {
+        if (!formData.utilityProvider?.trim()) newErrors.utilityProvider = "Utility Provider is required";
+      }
+
       if (!formData.siteCount?.trim()) newErrors.siteCount = "Site Count is required";
       // Facility Name optional per image? "Based on your earlier input" placeholder
       if (!formData.facilityName?.trim()) newErrors.facilityName = "Facility Name is required";
@@ -349,6 +393,15 @@ function TemplateContent() {
     };
   };
 
+  // Helper to get Price for row calculation
+  const getRowPrice = (): number | null => {
+    if (!formData.state || !TARIFF_DATA[formData.state]) return null;
+    const data = TARIFF_DATA[formData.state];
+    if ("p" in data) return (data as TariffRate).p;
+    if (formData.utilityProvider && data[formData.utilityProvider as keyof typeof data]) return (data[formData.utilityProvider as keyof typeof data] as TariffRate).p;
+    return null;
+  };
+
   const handleRowChange = (id: string, field: keyof MonthlyEntry, value: string) => {
     setFormData((prev) => {
       const newData = prev.monthlyData.map((row) => {
@@ -363,6 +416,17 @@ function TemplateContent() {
             updatedRow.energyConsumption = (kwh * 0.0036).toFixed(4);
           } else {
             updatedRow.energyConsumption = "";
+          }
+        }
+
+        // Auto-calc from Spend in Monthly Row
+        if (field === "spend") {
+          const spendVal = parseFloat(value);
+          const price = getRowPrice();
+          if (!isNaN(spendVal) && price) {
+            const calculatedKwh = spendVal / price;
+            updatedRow.electricityPurchased = calculatedKwh.toFixed(2);
+            updatedRow.energyConsumption = (calculatedKwh * 0.0036).toFixed(4);
           }
         }
 
@@ -599,6 +663,30 @@ function TemplateContent() {
                     </p>
                     {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}
                   </div>
+
+                  {/* Utility Provider (Conditional) */}
+                  {formData.state && TARIFF_DATA[formData.state] && !("p" in TARIFF_DATA[formData.state]) && (
+                    <div className="col-span-1 animate-in fade-in slide-in-from-top-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-2">
+                        Utility Provider <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="utilityProvider"
+                        value={formData.utilityProvider || ""}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none text-gray-600"
+                      >
+                        <option value="">Select utility...</option>
+                        {Object.keys(TARIFF_DATA[formData.state]).map((utility) => (
+                          <option key={utility} value={utility}>{utility}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-gray-400 mt-1.5">
+                        Select the specific utility for accurate tariffs
+                      </p>
+                      {errors.utilityProvider && <p className="text-red-500 text-xs mt-1">{errors.utilityProvider}</p>}
+                    </div>
+                  )}
 
                   {/* Site Count */}
                   <div className="col-span-1">

@@ -90,6 +90,7 @@ export const POST = async (request: Request) => {
     // Prepare the data for Payload
     const scope2Data = {
       state: data.state || '',
+      utilityProvider: data.utilityProvider || '',
       siteCount: data.siteCount || '',
       facilityName: data.facilityName || '',
       email: data.userEmail || '',

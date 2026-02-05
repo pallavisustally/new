@@ -71,6 +71,11 @@ const Scope2Applications: CollectionConfig = {
       required: true,
     },
     {
+      name: "utilityProvider",
+      type: "text",
+      required: false,
+    },
+    {
       name: "siteCount",
       type: "text",
       required: true,
