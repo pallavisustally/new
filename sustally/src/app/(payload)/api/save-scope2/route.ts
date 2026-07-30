@@ -1,7 +1,7 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { APIError } from 'payload'
-import { sendAdminNotification, Scope2Submission } from '../../../../lib/email'
+import { sendDashboardEmail, Scope2Submission } from '../../../../lib/email'
 
 export const OPTIONS = async (request: Request) => {
   // Handle CORS preflight
@@ -128,7 +128,7 @@ export const POST = async (request: Request) => {
       userName: data.userName || '',
       userMobile: data.userMobile || '',
       userCompany: data.userCompany || '',
-      userEmail: data.userEmail || '',
+      userEmail: data.userEmail || data.email || '',
       sector: data.sector || '',
       natureOfBusiness: data.natureOfBusiness || '',
       state: data.state || '',
@@ -136,7 +136,7 @@ export const POST = async (request: Request) => {
       siteCount: data.siteCount || '',
       facilityName: data.facilityName || '',
       energyIntensityPerRupee: data.energyIntensityPerRupee || '',
-      email: data.userEmail || '',
+      email: (data.userEmail || data.email || '').toString().trim().toLowerCase(),
       renewableProcurement: data.renewableProcurement || '',
       onsiteExportedKwh: data.onsiteExportedKwh || '',
       netMeteringApplicable: data.netMeteringApplicable || '',
@@ -180,26 +180,34 @@ export const POST = async (request: Request) => {
       energyGrid_kJ: parseFloat(String(data.energyGrid_kJ)) || null,
       energyRenew_kJ: parseFloat(String(data.energyRenew_kJ)) || null,
       energyTotal_kJ: parseFloat(String(data.energyTotal_kJ)) || null,
-      status: 'PENDING' as const,
+      status: 'APPROVED' as const,
     }
 
-    // Create the scope2 application in Payload
+    // Create the scope2 application in Payload (auto-approved — no admin verification)
     const created = await payload.create({
       collection: 'scope2-applications',
       data: scope2Data,
     })
 
-    // Prepare submission object for email
     const submission: Scope2Submission = {
       id: String(created.id),
-      status: 'PENDING',
+      status: 'APPROVED',
       submittedAt: new Date().toISOString(),
-      data: scope2Data,
+      data: { ...scope2Data, certificateId: created.certificateId },
     }
 
-    // Send Admin Notification
-    console.log(`[API] Triggering admin notification for submission ${created.id}`);
-    await sendAdminNotification(submission)
+    // Share dashboard link directly to the user's email
+    const userEmail = (scope2Data.userEmail || scope2Data.email || '').toString().trim().toLowerCase()
+    let emailSent = false
+    if (userEmail) {
+      console.log(`[API] Sharing dashboard with ${userEmail} for submission ${created.id}`)
+      emailSent = await sendDashboardEmail(userEmail, submission, payload)
+      if (!emailSent) {
+        console.error(`[API] Dashboard email FAILED for ${userEmail} (submission ${created.id})`)
+      }
+    } else {
+      console.warn(`[API] No user email on submission ${created.id}; skipping dashboard email`)
+    }
 
     // Get origin for CORS
     const origin = request.headers.get('origin')
@@ -222,6 +230,9 @@ export const POST = async (request: Request) => {
       success: true,
       message: 'Scope 2 application saved successfully',
       id: created.id,
+      certificateId: created.certificateId || null,
+      email: userEmail || null,
+      emailSent,
     }, { headers })
   } catch (error) {
     console.error('Error saving scope2 application:', error)

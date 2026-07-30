@@ -132,7 +132,7 @@ export default function HomePage() {
     const saved = sessionStorage.getItem("step1FormData");
     if (saved) {
       try {
-        setFormData(JSON.parse(saved));
+        setFormData((prev) => ({ ...prev, ...JSON.parse(saved) }));
       } catch (e) { }
     }
     setIsLoaded(true);
@@ -222,14 +222,22 @@ export default function HomePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      // Proceed to next step
-      console.log("Form Submitted", formData);
+      sessionStorage.setItem("step1FormData", JSON.stringify(formData));
+
       const params = new URLSearchParams();
-      // Add existing form data to search params
       Object.entries(formData).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (value) params.append(key, String(value));
       });
-      router.push(`/choose-time?${params.toString()}`);
+
+      // Reuse assessment ID if the user comes back and continues again
+      let assessmentId = sessionStorage.getItem("step1AssessmentId");
+      if (!assessmentId) {
+        assessmentId = Math.random().toString(36).substring(2, 10).toUpperCase();
+        sessionStorage.setItem("step1AssessmentId", assessmentId);
+      }
+      params.set("assessmentId", assessmentId);
+
+      router.push(`/scope?${params.toString()}`);
     }
   };
 
@@ -245,7 +253,7 @@ export default function HomePage() {
               </span>
             </div>
             <h1 className="text-xl font-bold text-gray-900">
-              Book Your Scope 2 Self Assessment
+              Start Your Scope 2 Self Assessment
             </h1>
             <p className="text-gray-500 mt-1 text-xs">
               Share A Few Basic Details. Takes About 2 Minutes.
@@ -595,7 +603,7 @@ export default function HomePage() {
                 type="submit"
                 className="flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold transition-all transform hover:scale-105 text-sm"
               >
-                Next: Choose Time
+                Next: Scope Assessment
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

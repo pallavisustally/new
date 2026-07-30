@@ -48,7 +48,7 @@ const Scope2Applications: CollectionConfig = {
         // Only load and run the hook on the server
         if (typeof window === 'undefined' && operation === 'update') {
           try {
-            const { sendApprovalEmail, sendRejectionEmail } = await import('../lib/email');
+            const { sendDashboardEmail, sendRejectionEmail } = await import('../lib/email');
 
             const submission = {
               id: doc.id,
@@ -62,7 +62,7 @@ const Scope2Applications: CollectionConfig = {
             if (doc.status === "APPROVED" && previousDoc.status !== "APPROVED") {
               console.log(`[Scope2] Approving submission ${doc.id}. Email: ${userEmail}`);
               if (userEmail) {
-                await sendApprovalEmail(userEmail, submission);
+                await sendDashboardEmail(userEmail, submission, req.payload);
               } else {
                 console.error(`[Scope2] Cannot send approval email. No email found for submission ${doc.id}`);
               }

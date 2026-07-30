@@ -1313,7 +1313,7 @@ function TemplateContent() {
               </span>
             </div>
             <h1 className="text-xl font-bold text-gray-900">
-              Book Your Scope 2 Self Assessment
+              Scope 2 Self Assessment
             </h1>
             <p className="text-gray-500 mt-1 text-xs">
               Share A Few Basic Details. Takes About 2 Minutes.

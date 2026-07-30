@@ -9,14 +9,33 @@ export interface Scope2Submission {
 
 let testAccountPromise: Promise<TestAccount> | null = null;
 
+function getFromAddress() {
+    const address = process.env.SMTP_FROM_ADDRESS || process.env.SMTP_USER || 'no-reply@sustally.com';
+    const name = process.env.SMTP_FROM_NAME || 'Sustally Team';
+    return `"${name}" <${address}>`;
+}
+
+function getDashboardBaseUrl() {
+    // Prefer an explicit frontend URL; strip trailing slash
+    const raw =
+        process.env.DASHBOARD_APP_URL ||
+        process.env.FRONTEND_APP_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        'http://localhost:3000';
+    return raw.replace(/\/$/, '');
+}
+
 // Helper to get transporter - either from ENV or auto-generated Ethereal account
 async function getTransporter() {
     const nodemailer = (await import('nodemailer')).default;
 
     if (process.env.SMTP_HOST) {
+        const port = parseInt(process.env.SMTP_PORT || '587');
         return nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587'),
+            port,
+            secure: port === 465,
+            requireTLS: port === 587,
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS,
@@ -34,10 +53,10 @@ async function getTransporter() {
     return nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
-        secure: false, // true for 465, false for other ports
+        secure: false,
         auth: {
-            user: testAccount.user, // generated ethereal user
-            pass: testAccount.pass, // generated ethereal password
+            user: testAccount.user,
+            pass: testAccount.pass,
         },
     });
 }
@@ -47,12 +66,11 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@sustally.com';
 export async function sendAdminNotification(submission: Scope2Submission) {
     const transporter = await getTransporter();
     const DASHBOARD_URL = process.env.ADMIN_DASHBOARD_URL || 'https://new-rho-plum.vercel.app';
-    // Update review link to point to the correct admin dashboard URL
     const reviewLink = `${DASHBOARD_URL}`;
     const facilityName = (submission.data.facilityName as string) || 'Unknown Facility';
 
     const mailOptions = {
-        from: '"Sustally System" <no-reply@sustally.com>',
+        from: getFromAddress(),
         to: ADMIN_EMAIL,
         subject: `New Scope 2 Assessment Submission: ${facilityName}`,
         html: `
@@ -75,47 +93,71 @@ export async function sendAdminNotification(submission: Scope2Submission) {
             const nodemailer = (await import('nodemailer')).default;
             console.log('Preview URL: ' + nodemailer.getTestMessageUrl(info));
         }
+        return true;
     } catch (error) {
         console.error('Error sending admin email:', error);
+        return false;
     }
 }
 
-export async function sendApprovalEmail(userEmail: string, submission: Scope2Submission) {
-    console.log(`[Email] Preparing approval email for ${userEmail}`);
-    const transporter = await getTransporter();
+export async function sendDashboardEmail(
+    userEmail: string,
+    submission: Scope2Submission,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    payload?: { sendEmail: (args: { to: string; subject: string; html: string }) => Promise<unknown> }
+) {
+    const normalizedEmail = String(userEmail || '').trim().toLowerCase();
+    if (!normalizedEmail) {
+        console.error('[Email] Cannot send dashboard email: empty recipient');
+        return false;
+    }
+
+    console.log(`[Email] Preparing dashboard share email for ${normalizedEmail}`);
     const facilityName = (submission.data.facilityName as string) || 'Unknown Facility';
+    const baseUrl = getDashboardBaseUrl();
+    const dashboardLink = `${baseUrl}/dashboard?email=${encodeURIComponent(normalizedEmail)}`;
 
-    // Construct Dashboard URL with params
-    // Construct Dashboard URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sustally.vercel.app';
-    const dashboardLink = `${baseUrl}/dashboard?email=${encodeURIComponent(userEmail)}`;
-
-    const mailOptions = {
-        from: '"Sustally Team" <no-reply@sustally.com>',
-        to: userEmail,
-        subject: 'Scope 2 Assessment Approved - View Dashboard',
-        html: `
-      <h1>Congratulations!</h1>
-      <p>Your Scope 2 assessment for <strong>${facilityName}</strong> has been approved.</p>
-      <p>You can now view your emissions dashboard and download your certificate using the link below:</p>
+    const subject = 'Your Scope 2 Dashboard Is Ready';
+    const html = `
+      <h1>Your Dashboard Is Ready</h1>
+      <p>Your Scope 2 assessment for <strong>${facilityName}</strong> is complete.</p>
+      <p>We have shared your emissions dashboard with this email. Use the link below to view and download your report:</p>
       <br />
       <a href="${dashboardLink}" style="padding: 12px 24px; background-color: #3D5F2B; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View Dashboard</a>
       <br /><br />
       <p>Best regards,<br/>Sustally Team</p>
-    `,
-    };
+    `;
 
     try {
-        console.log(`[Email] Sending approval email to ${userEmail} with link ${dashboardLink}`);
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Approval email sent to:', userEmail, 'ID:', info.messageId);
+        if (payload?.sendEmail) {
+            console.log(`[Email] Sending dashboard email via Payload to ${normalizedEmail} with link ${dashboardLink}`);
+            await payload.sendEmail({ to: normalizedEmail, subject, html });
+            console.log('Dashboard email sent via Payload to:', normalizedEmail);
+            return true;
+        }
+
+        const transporter = await getTransporter();
+        const info = await transporter.sendMail({
+            from: getFromAddress(),
+            to: normalizedEmail,
+            subject,
+            html,
+        });
+        console.log('Dashboard email sent to:', normalizedEmail, 'ID:', info.messageId);
         if (!process.env.SMTP_HOST) {
             const nodemailer = (await import('nodemailer')).default;
             console.log('Preview URL: ' + nodemailer.getTestMessageUrl(info));
         }
+        return true;
     } catch (error) {
-        console.error('Error sending approval email:', error);
+        console.error('Error sending dashboard email:', error);
+        return false;
     }
+}
+
+/** @deprecated Prefer sendDashboardEmail — kept for admin status-change hooks */
+export async function sendApprovalEmail(userEmail: string, submission: Scope2Submission) {
+    return sendDashboardEmail(userEmail, submission);
 }
 
 export async function sendRejectionEmail(userEmail: string, submission: Scope2Submission, reason?: string, assessmentLink?: string) {

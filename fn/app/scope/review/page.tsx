@@ -207,7 +207,6 @@ function ScopeReviewContent() {
 
   const submitAssessment = async () => {
     setIsSubmitting(true);
-    // Simulate final submission
     try {
       if (!formData) throw new Error("No data found to submit.");
 
@@ -238,6 +237,45 @@ function ScopeReviewContent() {
         throw new Error(saveResult.error || "Failed to save application");
       }
 
+      // Persist session for immediate report/dashboard access (no OTP)
+      const sessionUser = {
+        name: formData.userName || "",
+        facilityName: formData.facilityName,
+        userCompany: formData.userCompany,
+        email: formData.userEmail,
+        id: saveResult.id,
+        certificateId: saveResult.certificateId,
+        sector: formData.sector,
+        natureOfBusiness: formData.natureOfBusiness,
+        state: formData.state,
+        siteCount: formData.siteCount,
+        energyIntensityPerRupee: formData.energyIntensityPerRupee,
+        reportingYear: formData.reportingYear,
+        reportingPeriod: formData.reportingPeriod,
+        scopeBoundaryNotes: formData.scopeBoundaryNotes,
+        energyConsumption: formData.energyConsumption,
+        renewableElectricity: formData.renewableElectricity,
+        renewableEnergyConsumption: formData.renewableEnergyConsumption,
+        onsiteExportedKwh: formData.onsiteExportedKwh,
+        gridEmissionFactor: formData.gridEmissionFactor,
+        locationBasedEmissions: formData.locationBasedEmissions,
+        marketBasedEmissions: formData.marketBasedEmissions,
+        energyGrid_kJ: formData.energyGrid_kJ,
+        energyRenew_kJ: formData.energyRenew_kJ,
+        energyTotal_kJ: formData.energyTotal_kJ,
+        monthlyData: formData.monthlyData,
+        renewableMonthlyData: formData.renewableMonthlyData,
+        renewableEnergyActivityInput: formData.renewableEnergyActivityInput,
+        dataSourceType: formData.dataSourceType,
+        renewableDataSourceType: formData.renewableDataSourceType,
+        electricityPurchased: formData.electricityPurchased,
+        spendAmount: formData.spendAmount,
+        trackingType: formData.trackingType,
+        energyActivityInput: formData.energyActivityInput,
+        hasRenewableElectricity: formData.hasRenewableElectricity,
+      };
+      sessionStorage.setItem("scope2_user", JSON.stringify(sessionUser));
+
       setIsSubmitted(true);
       if (formData.userEmail) {
         localStorage.setItem(`scope2_completed_${formData.userEmail}`, "true");
@@ -245,7 +283,7 @@ function ScopeReviewContent() {
           localStorage.setItem(`scope2_completed_${formData.assessmentId}`, "true");
         }
       }
-      localStorage.removeItem("scope2ReviewData"); // Clean up
+      localStorage.removeItem("scope2ReviewData");
       sessionStorage.removeItem("scopeFormData");
       sessionStorage.removeItem("scopeFormPage");
     } catch (e: any) {
@@ -265,10 +303,14 @@ function ScopeReviewContent() {
   };
 
   if (isSubmitted) {
+    const sharedEmail =
+      formData?.userEmail ||
+      searchParams.get("email") ||
+      "";
+
     return (
       <main className="min-h-screen bg-[#f8f9fa] px-4 py-8 sm:px-6 sm:py-10 font-sans text-gray-900 flex flex-col items-center justify-center">
         <div className="w-full max-w-[95%] md:max-w-4xl lg:max-w-5xl bg-white rounded-3xl shadow-md px-6 py-12 sm:px-10 sm:py-16 md:py-20 lg:py-24 mx-auto flex flex-col items-center justify-center">
-          {/* Header (logo then tick on mobile) */}
           <div className="flex flex-col items-center text-center w-full">
             <div className="flex items-center justify-center gap-2 sm:gap-3 opacity-90 flex-wrap w-full">
               <img src="/sustally-logo.png" alt="Sustally" className="h-10 sm:h-12 w-auto object-contain" />
@@ -282,19 +324,20 @@ function ScopeReviewContent() {
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-center text-center">
-            {/* Big Green Checkmark */}
-            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mb-6 shadow-sm">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6L9 17l-5-5" />
+            <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center mb-6 shadow-sm">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
               </svg>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 leading-tight">
-              Thank You! Your Assessment Has Been Successfully Completed.
+              Dashboard Shared To {sharedEmail || "Your Email"}
             </h1>
 
             <p className="text-gray-500 text-sm sm:text-lg max-w-xl">
-              You Will Get The Certificate Directly To Your Email Once Admin Approves Your Assignment.
+              Your Scope 2 dashboard link has been sent to{" "}
+              <span className="font-semibold text-gray-800">{sharedEmail || "your registered email"}</span>.
             </p>
           </div>
         </div>
@@ -470,7 +513,7 @@ function ScopeReviewContent() {
             ) : (
               <CheckIcon />
             )}
-            {isSubmitting ? "Submitting..." : "Confirm & Submit"}
+            {isSubmitting ? "Submitting..." : "Submit and Download Report"}
           </button>
         </div>
 
