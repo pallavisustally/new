@@ -62,7 +62,12 @@ const Scope2Applications: CollectionConfig = {
             if (doc.status === "APPROVED" && previousDoc.status !== "APPROVED") {
               console.log(`[Scope2] Approving submission ${doc.id}. Email: ${userEmail}`);
               if (userEmail) {
-                await sendDashboardEmail(userEmail, submission, req.payload);
+                const requestOrigin =
+                  req.headers?.get?.('origin') ||
+                  req.headers?.get?.('referer') ||
+                  req.headers?.origin ||
+                  req.headers?.referer;
+                await sendDashboardEmail(userEmail, submission, req.payload, requestOrigin);
               } else {
                 console.error(`[Scope2] Cannot send approval email. No email found for submission ${doc.id}`);
               }

@@ -72,7 +72,10 @@ function DashboardContent() {
           if (searchParams.get("view") === "dashboard") {
             setStep("DASHBOARD");
           } else {
-            router.replace("/scope/certificate");
+            const certificateParams = new URLSearchParams();
+            const sessionEmail = (parsed.email || email || "").trim();
+            if (sessionEmail) certificateParams.set("email", sessionEmail);
+            router.replace(`/scope/certificate${certificateParams.toString() ? `?${certificateParams.toString()}` : ""}`);
           }
           return;
         } catch {
@@ -110,7 +113,9 @@ function DashboardContent() {
         if (searchParams.get("view") === "dashboard") {
           setStep("DASHBOARD");
         } else {
-          router.replace("/scope/certificate");
+          const certificateParams = new URLSearchParams();
+          if (email) certificateParams.set("email", email);
+          router.replace(`/scope/certificate${certificateParams.toString() ? `?${certificateParams.toString()}` : ""}`);
         }
       } catch {
         if (!cancelled) {

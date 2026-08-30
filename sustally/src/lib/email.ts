@@ -15,14 +15,38 @@ function getFromAddress() {
     return `"${name}" <${address}>`;
 }
 
-function getDashboardBaseUrl() {
-    // Prefer an explicit frontend URL; strip trailing slash
-    const raw =
-        process.env.DASHBOARD_APP_URL ||
-        process.env.FRONTEND_APP_URL ||
-        process.env.NEXT_PUBLIC_APP_URL ||
-        'http://localhost:3000';
-    return raw.replace(/\/$/, '');
+const PRODUCTION_FRONTEND_URL = 'https://sustally.vercel.app';
+
+function normalizeBaseUrl(raw?: string | null) {
+    if (!raw) return '';
+    const trimmed = raw.trim().replace(/\/$/, '');
+    if (!/^https?:\/\//i.test(trimmed)) return '';
+    try {
+        const url = new URL(trimmed);
+        return `${url.protocol}//${url.host}`;
+    } catch {
+        return '';
+    }
+}
+
+function isLocalhostUrl(url: string) {
+    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(url);
+}
+
+export function getDashboardBaseUrl(requestOrigin?: string | null) {
+    const candidates = [
+        normalizeBaseUrl(requestOrigin),
+        normalizeBaseUrl(process.env.DASHBOARD_APP_URL),
+        normalizeBaseUrl(process.env.FRONTEND_APP_URL),
+        normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL),
+        PRODUCTION_FRONTEND_URL,
+    ].filter(Boolean);
+
+    const publicUrl = candidates.find((url) => !isLocalhostUrl(url));
+    if (publicUrl) return publicUrl;
+
+    // Local development only — no public URL is configured
+    return candidates[0] || 'http://localhost:3000';
 }
 
 // Helper to get transporter - either from ENV or auto-generated Ethereal account
@@ -104,7 +128,8 @@ export async function sendDashboardEmail(
     userEmail: string,
     submission: Scope2Submission,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    payload?: { sendEmail: (args: { to: string; subject: string; html: string }) => Promise<unknown> }
+    payload?: { sendEmail: (args: { to: string; subject: string; html: string }) => Promise<unknown> },
+    requestOrigin?: string | null
 ) {
     const normalizedEmail = String(userEmail || '').trim().toLowerCase();
     if (!normalizedEmail) {
@@ -114,7 +139,7 @@ export async function sendDashboardEmail(
 
     console.log(`[Email] Preparing dashboard share email for ${normalizedEmail}`);
     const facilityName = (submission.data.facilityName as string) || 'Unknown Facility';
-    const baseUrl = getDashboardBaseUrl();
+    const baseUrl = getDashboardBaseUrl(requestOrigin);
     const dashboardLink = `${baseUrl}/dashboard?email=${encodeURIComponent(normalizedEmail)}`;
 
     const subject = 'Your Scope 2 Dashboard Is Ready';

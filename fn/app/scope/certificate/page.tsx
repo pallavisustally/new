@@ -87,17 +87,7 @@ function CertificateContent() {
       return;
     }
 
-    // Check for session data
-    const storedUser = sessionStorage.getItem("scope2_user");
-
-    if (!storedUser) {
-      // Not authenticated, redirect to login
-      router.push("/dashboard");
-      return;
-    }
-
-    try {
-      const parsedData = JSON.parse(storedUser);
+    const applyUser = (parsedData: any) => {
       const rawReportingYear = parsedData.reportingYear || "";
       const rawReportingPeriod = parsedData.reportingPeriod || "Annually";
       const formattedPeriod = formatReportingPeriod(rawReportingYear, rawReportingPeriod);
@@ -114,7 +104,6 @@ function CertificateContent() {
         renewableEnergyConsumption: parsedData.renewableEnergyConsumption || "0",
         onsiteExportedKwh: parsedData.onsiteExportedKwh || "0",
         certificateId: parsedData.certificateId || formatCertificateId(),
-        // Metrics
         gridEmissionFactor: String(parsedData.gridEmissionFactor || "0"),
         locationBasedEmissions: String(parsedData.locationBasedEmissions || "0"),
         marketBasedEmissions: String(parsedData.marketBasedEmissions || "0"),
@@ -123,7 +112,6 @@ function CertificateContent() {
         energyTotal: String(parsedData.energyTotal_kJ || "0"),
         energyIntensityPerRupee: parsedData.energyIntensityPerRupee || "NA",
         energyConsumption: parsedData.energyConsumption || "0",
-        // Added manually to support display even if calculation didn't run fully or for debugging
         electricityPurchased: parsedData.electricityPurchased,
         spendAmount: parsedData.spendAmount,
         trackingType: parsedData.trackingType,
@@ -135,12 +123,57 @@ function CertificateContent() {
         renewableMonthlyData: parsedData.renewableMonthlyData || [],
         userCompany: parsedData.userCompany || parsedData.user_company || parsedData.facilityName || "-",
       });
-    } catch (e) {
-      console.error("Failed to parse session data", e);
-      router.push("/dashboard");
-    } finally {
-      setLoading(false);
+    };
+
+    const email = (searchParams.get("email") || "").trim().toLowerCase();
+    const storedUser = sessionStorage.getItem("scope2_user");
+
+    if (storedUser) {
+      try {
+        applyUser(JSON.parse(storedUser));
+        setLoading(false);
+        return;
+      } catch (e) {
+        console.error("Failed to parse session data", e);
+        sessionStorage.removeItem("scope2_user");
+      }
     }
+
+    if (!email) {
+      router.replace("/dashboard");
+      return;
+    }
+
+    const API_URL =
+      process.env.NEXT_PUBLIC_SUSTALLY_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:3001";
+
+    const query = new URLSearchParams({
+      "where[email][equals]": email,
+      limit: "1",
+      sort: "-createdAt",
+    });
+
+    fetch(`${API_URL}/api/scope2-applications?${query.toString()}`)
+      .then(async (res) => {
+        const payload = await res.json();
+        if (!res.ok || !payload?.docs?.length) {
+          router.replace(`/dashboard?email=${encodeURIComponent(email)}`);
+          return;
+        }
+
+        const application = payload.docs[0];
+        sessionStorage.setItem("scope2_user", JSON.stringify(application));
+        applyUser(application);
+      })
+      .catch((error) => {
+        console.error("Failed to load assessment for certificate", error);
+        router.replace(`/dashboard?email=${encodeURIComponent(email)}`);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [router, searchParams]);
 
   if (loading || !data) {

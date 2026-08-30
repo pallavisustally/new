@@ -198,10 +198,11 @@ export const POST = async (request: Request) => {
 
     // Share dashboard link directly to the user's email
     const userEmail = (scope2Data.userEmail || scope2Data.email || '').toString().trim().toLowerCase()
+    const requestOrigin = request.headers.get('origin') || request.headers.get('referer')
     let emailSent = false
     if (userEmail) {
       console.log(`[API] Sharing dashboard with ${userEmail} for submission ${created.id}`)
-      emailSent = await sendDashboardEmail(userEmail, submission, payload)
+      emailSent = await sendDashboardEmail(userEmail, submission, payload, requestOrigin)
       if (!emailSent) {
         console.error(`[API] Dashboard email FAILED for ${userEmail} (submission ${created.id})`)
       }

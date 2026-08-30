@@ -276,7 +276,6 @@ function ScopeReviewContent() {
       };
       sessionStorage.setItem("scope2_user", JSON.stringify(sessionUser));
 
-      setIsSubmitted(true);
       if (formData.userEmail) {
         localStorage.setItem(`scope2_completed_${formData.userEmail}`, "true");
         if (formData.assessmentId) {
@@ -286,6 +285,9 @@ function ScopeReviewContent() {
       localStorage.removeItem("scope2ReviewData");
       sessionStorage.removeItem("scopeFormData");
       sessionStorage.removeItem("scopeFormPage");
+
+      const submittedEmail = String(formData.userEmail || "").trim();
+      router.push(`/scope/certificate${submittedEmail ? `?email=${encodeURIComponent(submittedEmail)}` : ""}`);
     } catch (e: any) {
       setNotification({ message: e.message || "Something went wrong.", type: "error" });
     } finally {
