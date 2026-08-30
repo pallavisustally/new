@@ -255,7 +255,7 @@ export default function SolarPage() {
                                             type="monotone"
                                             dataKey="cumulativeCashflow"
                                             name="Cumulative Cashflow"
-                                            stroke="#4F46E5"
+                                            stroke="#8e4dff"
                                             strokeWidth={3}
                                             dot={false}
                                             activeDot={{ r: 6 }}

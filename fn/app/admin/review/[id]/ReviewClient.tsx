@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 // ------------- ICONS (Reused) -------------
 const BoundaryIcon = () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8e4dff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
         <circle cx="12" cy="10" r="3"></circle>
     </svg>
@@ -236,7 +236,7 @@ export default function ReviewClient({ submission }: { submission: any }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20">
                     {/* Left Column */}
                     <div className="flex flex-col gap-4">
-                        <ReviewCard title="User Identity" icon={<BoundaryIcon />} accentColor="#6366f1">
+                        <ReviewCard title="User Identity" icon={<BoundaryIcon />} accentColor="#8e4dff">
                             <DetailGrid>
                                 <DetailRow label="Name" value={data.userName || "Unknown"} />
                                 <DetailRow label="Email" value={data.userEmail || "Unknown"} />
@@ -247,7 +247,7 @@ export default function ReviewClient({ submission }: { submission: any }) {
                             </DetailGrid>
                         </ReviewCard>
 
-                        <ReviewCard title="Boundary & Site Details" icon={<BoundaryIcon />} accentColor="#6366f1">
+                        <ReviewCard title="Boundary & Site Details" icon={<BoundaryIcon />} accentColor="#8e4dff">
                             <DetailGrid>
                                 <DetailRow label="Grid Regions" value={data.state} />
                                 <DetailRow label="Facility Name" value={data.facilityName} />

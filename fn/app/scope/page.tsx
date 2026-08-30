@@ -362,7 +362,7 @@ function TemplateContent() {
             </svg>
           </div>
 
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">
+          <h1 className="text-2xl font-bold text-brand mb-2">
             Assessment Not Started
           </h1>
 
@@ -1277,7 +1277,7 @@ function TemplateContent() {
         type="button"
         onClick={() => handleRadioChange(name, "Yes")}
         className={`flex-1 h-full flex items-center justify-center rounded-md text-sm font-medium transition-all ${value === "Yes"
-          ? "bg-[#4F46E5] text-white shadow-sm"
+          ? "bg-[#8e4dff] text-white shadow-sm"
           : "text-gray-500 hover:text-gray-900"
           }`}
       >
@@ -1291,7 +1291,7 @@ function TemplateContent() {
         type="button"
         onClick={() => handleRadioChange(name, "No")}
         className={`flex-1 h-full flex items-center justify-center rounded-md text-sm font-medium transition-all ${value === "No"
-          ? "bg-[#4F46E5] text-white shadow-sm"
+          ? "bg-[#8e4dff] text-white shadow-sm"
           : "text-gray-500 hover:text-gray-900"
           }`}
       >
@@ -1338,7 +1338,7 @@ function TemplateContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 opacity-90">
+          <div className="flex items-center gap-3 opacity-90 md:pr-16">
             <img
               src="/sustally-logo.png"
               alt="sustally"
@@ -1612,7 +1612,7 @@ function TemplateContent() {
                                 return updates;
                               })}
                               className={`flex-1 h-full min-h-[32px] flex items-center justify-center rounded text-center transition-all ${formData.reportingPeriod === p
-                                ? "bg-[#4F46E5] text-white shadow-sm"
+                                ? "bg-[#8e4dff] text-white shadow-sm"
                                 : "text-gray-500 hover:text-gray-900"
                                 }`}
                             >
@@ -1949,7 +1949,7 @@ function TemplateContent() {
                                   type="button"
                                   onClick={() => handleRadioChange("trackingType", t.id)}
                                   className={`px-4 h-10 flex items-center justify-center rounded-lg text-xs font-bold tracking-wider transition-all border ${formData.trackingType === t.id
-                                    ? "bg-[#4F46E5] text-white border-[#4F46E5]"
+                                    ? "bg-[#8e4dff] text-white border-[#8e4dff]"
                                     : errors.trackingType ? "bg-red-50 text-red-500 border-red-300" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
                                     }`}
                                 >

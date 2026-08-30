@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
+import { captureInLightTheme } from "../../../components/ThemeProvider";
 import jsPDF from "jspdf";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import CostSavingCard from "../../dashboard/CostSavingCard";
@@ -250,7 +251,9 @@ function CertificateContent() {
       setIsDownloading(true);
 
       // Force valid dimensions for capture (A4 at 96 DPI: 794x1123)
-      const dataUrl = await toPng(certificateRef.current, { cacheBust: true, width: 794, height: 1123, pixelRatio: 2 });
+      const dataUrl = await captureInLightTheme(() =>
+        toPng(certificateRef.current!, { cacheBust: true, width: 794, height: 1123, pixelRatio: 2 })
+      );
 
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -281,7 +284,9 @@ function CertificateContent() {
       await new Promise(resolve => setTimeout(resolve, 150));
 
       // Capture the dashboard with good quality
-      const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2 });
+      const dataUrl = await captureInLightTheme(() =>
+        toPng(element, { cacheBust: true, pixelRatio: 2 })
+      );
 
       // Calculate aspect ratio to fit in PDF (Landscape A4: 297mm x 210mm)
       // A4 Landscape in px (approx): 1123 x 794
@@ -315,12 +320,16 @@ function CertificateContent() {
         format: [794, 1123]
       });
 
-      const dataUrl1 = await toPng(brsrPage1Ref.current, { cacheBust: true, width: 794, height: 1123, pixelRatio: 2 });
+      const dataUrl1 = await captureInLightTheme(() =>
+        toPng(brsrPage1Ref.current!, { cacheBust: true, width: 794, height: 1123, pixelRatio: 2 })
+      );
       pdf.addImage(dataUrl1, 'PNG', 0, 0, 794, 1123);
 
       pdf.addPage([794, 1123], 'portrait');
 
-      const dataUrl2 = await toPng(brsrPage2Ref.current, { cacheBust: true, width: 794, height: 1123, pixelRatio: 2 });
+      const dataUrl2 = await captureInLightTheme(() =>
+        toPng(brsrPage2Ref.current!, { cacheBust: true, width: 794, height: 1123, pixelRatio: 2 })
+      );
       pdf.addImage(dataUrl2, 'PNG', 0, 0, 794, 1123);
 
       pdf.save(`BRSR_P6_Report_${data.userCompany !== "-" ? data.userCompany : data.facilityName}_${data.reportingYear}.pdf`);

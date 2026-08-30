@@ -7,7 +7,7 @@ import Image from "next/image";
 // ------------- ICONS -------------
 
 const BoundaryIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8e4dff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
     <circle cx="12" cy="10" r="3"></circle>
   </svg>
@@ -28,7 +28,7 @@ const RenewableIcon = () => (
 );
 
 const EvidenceIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8e4dff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
     <polyline points="14 2 14 8 20 8"></polyline>
     <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -327,7 +327,7 @@ function ScopeReviewContent() {
 
           <div className="mt-10 flex flex-col items-center justify-center text-center">
             <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center mb-6 shadow-sm">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8e4dff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="22,6 12,13 2,6" />
               </svg>
@@ -404,7 +404,7 @@ function ScopeReviewContent() {
           )}
 
           {/* Boundary & Site Details */}
-          <ReviewCard title="Boundary & Site Details" icon={<BoundaryIcon />} accentColor="#6366f1">
+          <ReviewCard title="Boundary & Site Details" icon={<BoundaryIcon />} accentColor="#8e4dff">
             <DetailGrid>
               <DetailRow label="State / Grid Region" value={formData.state || "Not specified"} />
               <DetailRow label="Facility Name" value={formData.facilityName || "Not specified"} />
@@ -505,7 +505,7 @@ function ScopeReviewContent() {
             type="button"
             onClick={submitAssessment}
             disabled={isSubmitting}
-            className={`px-6 py-2.5 rounded-full bg-[#4F46E5] text-white text-xs font-bold flex items-center gap-2 shadow-lg hover:bg-[#4F46E5] transition-colors shadow-indigo-200 ${isSubmitting ? "opacity-70 cursor-wait" : ""}`}
+            className={`px-6 py-2.5 rounded-full bg-brand text-white text-xs font-bold flex items-center gap-2 shadow-lg hover:bg-indigo-600 transition-colors shadow-indigo-200 ${isSubmitting ? "opacity-70 cursor-wait" : ""}`}
           >
             {isSubmitting ? (
               <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

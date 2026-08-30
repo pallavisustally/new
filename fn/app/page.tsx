@@ -273,7 +273,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-1 md:mt-0 flex flex-col items-end">
+          <div className="mt-1 md:mt-0 flex flex-col items-end md:pr-16">
             {/* Logo placeholder */}
             <div className="flex items-center gap-3 opacity-90">
               <img
@@ -420,7 +420,7 @@ export default function HomePage() {
 
             {/* Column 3: What you'll get (Span 3) */}
             <div className="lg:col-span-3 flex flex-col justify-center">
-              <h3 className="text-base font-bold text-gray-400 mb-2 bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent opacity-80">
+              <h3 className="text-base font-bold text-brand mb-2">
                 What You'll Get
               </h3>
 
