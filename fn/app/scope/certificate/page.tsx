@@ -515,29 +515,6 @@ function CertificateContent() {
                 </div>
 
                 <div
-                  className={`flex-1 flex items-center justify-between p-4 bg-white rounded-xl border border-indigo-50 hover:border-indigo-200 transition-colors ${isDownloading ? 'opacity-70 pointer-events-none' : ''}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <div className="leading-tight">
-                      <p className="text-sm font-semibold text-gray-800">Recognition Certificate</p>
-                    </div>
-                  </div>
-                  <button
-                    className="text-xs font-bold text-green-600 cursor-pointer hover:text-green-800 transition-colors"
-                    onClick={handleDownloadCertificate}
-                  >
-                    {isDownloading ? (
-                      <span className="animate-pulse">Loading...</span>
-                    ) : (
-                      "Download"
-                    )}
-                  </button>
-                </div>
-
-                <div
                   className={`flex-1 flex items-center justify-between p-4 bg-white rounded-xl border border-indigo-50 hover:border-indigo-200 transition-colors ${isDownloadingBrsr ? 'opacity-70 pointer-events-none' : ''}`}
                 >
                   <div className="flex items-center gap-3">
